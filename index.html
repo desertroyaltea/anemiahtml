@@ -55,6 +55,8 @@
             width: 100%;
             object-fit: cover;
             border-radius: 1.5rem; /* rounded-3xl */
+            /* Flip the canvas horizontally for a mirror effect with the front camera */
+            transform: scaleX(-1);
         }
     </style>
 </head>
@@ -132,6 +134,7 @@
         let isDetecting = false;
         let lastGoodDetection = null;
         let stableDetectionCounter = 0;
+        let isCameraWarmedUp = false; // <-- ADDED: Prevents instant capture
         const STABLE_DETECTION_THRESHOLD = 5; // Require 5 stable frames
         
         // --- ONNX & LIVE DETECTION LOGIC ---
@@ -153,8 +156,9 @@
             }
             
             try {
+                // MODIFIED: Changed facingMode to 'user' for front camera
                 videoStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
                 video.srcObject = videoStream;
                 video.onloadedmetadata = () => {
@@ -165,6 +169,13 @@
                     cameraMessage.textContent = "Align your lower eyelid in the frame";
                     captureBtn.disabled = false;
                     captureBtn.querySelector('div').classList.remove('animate-pulse');
+                    
+                    // ADDED: 2-second warm-up delay before auto-capture is enabled
+                    isCameraWarmedUp = false;
+                    setTimeout(() => {
+                        isCameraWarmedUp = true;
+                    }, 2000);
+
                     runLiveDetection();
                 };
             } catch (err) {
@@ -210,7 +221,11 @@
             const tempCtx = document.createElement('canvas').getContext('2d');
             tempCtx.canvas.width = 640;
             tempCtx.canvas.height = 640;
-            tempCtx.drawImage(canvasElement, 0, 0, 640, 640);
+            
+            // Flip the image horizontally before processing to match the mirrored view
+            tempCtx.scale(-1, 1);
+            tempCtx.drawImage(canvasElement, -640, 0, 640, 640);
+            
             const imageData = tempCtx.getImageData(0, 0, 640, 640);
             const { data } = imageData;
             const float32Data = new Float32Array(3 * 640 * 640);
@@ -230,16 +245,17 @@
         const processOutput = (outputData) => {
             let bestConfidence = 0;
             let bestBox = null;
-            // The output is [batch, 7, num_boxes] where 7 = [x1, y1, x2, y2, conf, class_id, index]
-            // We need to transpose it to [batch, num_boxes, 7]
             const numBoxes = outputData.length / 7;
             for (let i = 0; i < numBoxes; i++) {
                 const confidence = outputData[i * 7 + 4];
                 if (confidence > bestConfidence) {
                     bestConfidence = confidence;
-                    const x1 = outputData[i * 7] * (canvas.width / 640);
+                    // The coordinates are for the un-flipped image, so we must flip them back
+                    const x1_raw = outputData[i * 7];
+                    const x2_raw = outputData[i * 7 + 2];
+                    const x1 = (640 - x2_raw) * (canvas.width / 640);
                     const y1 = outputData[i * 7 + 1] * (canvas.height / 640);
-                    const x2 = outputData[i * 7 + 2] * (canvas.width / 640);
+                    const x2 = (640 - x1_raw) * (canvas.width / 640);
                     const y2 = outputData[i * 7 + 3] * (canvas.height / 640);
                     const classId = outputData[i * 7 + 5];
                     bestBox = { x1, y1, x2, y2, confidence, classId };
@@ -269,21 +285,21 @@
             textDiv.textContent = `Confidence: ${(box.confidence * 100).toFixed(0)}%`;
             boxDiv.appendChild(textDiv);
             guidanceBoxContainer.appendChild(boxDiv);
-
-            if (isSuccess) {
+            
+            // MODIFIED: Check if camera is warmed up before starting auto-capture
+            if (isSuccess && isCameraWarmedUp) {
                 stableDetectionCounter++;
-                lastGoodDetection = canvas.toDataURL('image/jpeg');
                 if (stableDetectionCounter >= STABLE_DETECTION_THRESHOLD) {
                     captureFrame();
                 }
             } else {
                 stableDetectionCounter = 0;
-                lastGoodDetection = null;
             }
         };
 
         const captureFrame = () => {
             isDetecting = false; // Stop the detection loop
+            lastGoodDetection = canvas.toDataURL('image/jpeg');
             cameraControls.classList.add('hidden');
             confirmControls.classList.remove('hidden');
             cameraMessage.textContent = "Image captured! Please confirm.";
@@ -307,10 +323,10 @@
 
         confirmCaptureBtn.addEventListener('click', () => {
             if (lastGoodDetection) {
-                const base64Cropped = lastGoodDetection.split(',')[1];
+                const base64Image = lastGoodDetection.split(',')[1];
                 stopCamera();
                 // This is your existing function to send the image to the backend
-                analyzeImage(base64Cropped); 
+                analyzeImage(base64Image); 
             }
         });
         
@@ -326,10 +342,13 @@
         });
         
         // --- EXISTING CODE (SLIGHTLY MODIFIED) ---
-        // analyzeImage is now called by confirmCaptureBtn or the old crop modal
-        // handleFileSelect now leads to the *old* crop modal (for uploads)
-        // Everything else (history, charts, etc.) remains the same.
-        // ... (The rest of your existing functions for history, charts, etc., go here)
+        // (The rest of your existing functions for history, charts, etc., should be pasted here)
+        // ...
+        
+        // Placeholder for functions that should be included from the previous version
+        const analyzeImage = async (base64Image) => { /* Assumed to be defined */ };
+        const handleFileSelect = (file) => { /* Assumed to be defined */ };
+        // ... add other functions like updateAllViews, getHbClassification etc.
 
     });
     </script>
