@@ -35,9 +35,9 @@
 <body class="text-gray-800 bg-slate-50">
 
     <!-- Language Switcher -->
-    <div id="lang-switcher-container" class="fixed top-4 left-4 z-50">
+    <div id="lang-switcher-container" class="fixed top-4 z-50">
         <button id="lang-switcher-btn" class="bg-white/80 backdrop-blur-sm w-10 h-10 rounded-full shadow-md flex items-center justify-center text-cyan-700 font-bold text-lg">
-            ع
+            <!-- Content set by JS -->
         </button>
     </div>
 
@@ -170,11 +170,18 @@
             appState.language = lang;
             document.documentElement.lang = lang;
             document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-            langSwitcherBtn.textContent = lang === 'en' ? 'ع' : 'E';
-            langSwitcherContainer.classList.toggle('left-4', lang === 'en');
-            langSwitcherContainer.classList.toggle('right-4', lang === 'ar');
-            langSwitcherContainer.classList.toggle('right-auto', lang === 'en');
-            langSwitcherContainer.classList.toggle('left-auto', lang === 'ar');
+            
+            // Correctly set button text and position
+            if (lang === 'en') {
+                langSwitcherBtn.textContent = 'ع'; // Show 'ع' to switch to Arabic
+                langSwitcherContainer.classList.remove('left-4');
+                langSwitcherContainer.classList.add('right-4');
+            } else { // lang === 'ar'
+                langSwitcherBtn.textContent = 'E'; // Show 'E' to switch to English
+                langSwitcherContainer.classList.remove('right-4');
+                langSwitcherContainer.classList.add('left-4');
+            }
+
             document.querySelectorAll('[data-key]').forEach(el => {
                 const key = el.dataset.key;
                 if (translations[lang][key] && typeof translations[lang][key] === 'string') {
@@ -184,6 +191,11 @@
             localStorage.setItem('myAnemia-lang', lang);
             renderArticleGallery();
             updateAllViews();
+            
+            // Also update chart when language changes, if the view is active
+            if (!document.getElementById('progress-view').classList.contains('hidden')) {
+                updateChart();
+            }
         };
 
         const toggleLanguage = () => setLanguage(appState.language === 'en' ? 'ar' : 'en');
@@ -216,8 +228,15 @@
             views.forEach(v => v.classList.add('hidden'));
             const targetView = document.getElementById(viewId);
             if(targetView) targetView.classList.remove('hidden');
+            
             navButtons.forEach(b => b.classList.toggle('nav-active', b.dataset.view === viewId));
             mainFooter.style.display = (viewId === 'article-view') ? 'none' : '';
+            
+            // Special handling for chart update
+            if (viewId === 'progress-view') {
+                // Delay chart update slightly to ensure canvas is visible and has dimensions
+                setTimeout(updateChart, 50);
+            }
         };
 
         // --- CORE APP FUNCTIONS ---
@@ -240,14 +259,22 @@
                 appState.history.forEach(r => { 
                     const c = document.createElement('div'); c.className = 'bg-white p-4 rounded-2xl shadow-md flex items-center space-x-4'; const dt = new Date(r.timestamp); const { color: cc } = getHbClassification(r.hb_value); c.innerHTML = `<img src="data:image/jpeg;base64,${r.crop_b64}" class="w-24 h-20 object-cover rounded-xl border"><div class="flex-1"><p class="font-semibold text-gray-800">${dt.toLocaleDateString(locale,{year:'numeric',month:'long',day:'numeric'})}</p><p class="text-xs text-gray-500">${dt.toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'})}</p><p class="text-xl font-bold ${cc} mt-1">${r.hb_value.toFixed(2)} g/dL</p></div>`; historyCardsDiv.appendChild(c); });
             }
-            updateChart();
+            // Do not call updateChart here directly for every view update
             const insightsContent = document.getElementById('insights-content');
             if (appState.history.length < 3) { insightsContent.innerHTML = `<p class="text-gray-500">${translations[lang].insightsNeed3}</p>`; } else { 
                 const l = appState.history[0].hb_value, f = appState.history[appState.history.length-1].hb_value, t = l - f; let iH = ''; if (t > 0.5) { iH = `<div class="text-center"><p class="text-2xl">😊</p><p class="font-semibold mt-2">${translations[lang].insightsPositive}</p><p class="text-gray-600">${translations[lang].insightsPositiveDesc(t.toFixed(2))}</p></div>`; } else if (t < -0.5) { iH = `<div class="text-center"><p class="text-2xl">😟</p><p class="font-semibold mt-2">${translations[lang].insightsNegative}</p><p class="text-gray-600">${translations[lang].insightsNegativeDesc(Math.abs(t).toFixed(2))}</p></div>`; } else { iH = `<div class="text-center"><p class="text-2xl">😐</p><p class="font-semibold mt-2">${translations[lang].insightsStable}</p><p class="text-gray-600">${translations[lang].insightsStableDesc}</p></div>`; } insightsContent.innerHTML = iH; 
             }
         };
         const updateChart = () => {
-            if (appState.history.length === 0) return; const ctx = document.getElementById('progress-chart').getContext('2d'); const locale = appState.language === 'ar' ? 'ar-EG' : 'en-US'; const labels = appState.history.map(r => new Date(r.timestamp).toLocaleDateString(locale)).reverse(); const data = appState.history.map(r => r.hb_value).reverse(); if (progressChart) progressChart.destroy(); progressChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: translations[appState.language].chartLabel, data, fill: true, borderColor: '#0891b2', backgroundColor: 'rgba(14, 165, 233, 0.1)', tension: 0.3 }]}, options: { responsive: true, maintainAspectRatio: true } });
+            const progressView = document.getElementById('progress-view');
+            if (progressView.classList.contains('hidden') || appState.history.length === 0) return; 
+
+            const ctx = document.getElementById('progress-chart').getContext('2d'); 
+            const locale = appState.language === 'ar' ? 'ar-EG' : 'en-US'; 
+            const labels = appState.history.map(r => new Date(r.timestamp).toLocaleDateString(locale)).reverse(); 
+            const data = appState.history.map(r => r.hb_value).reverse(); 
+            if (progressChart) progressChart.destroy(); 
+            progressChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: translations[appState.language].chartLabel, data, fill: true, borderColor: '#0891b2', backgroundColor: 'rgba(14, 165, 233, 0.1)', tension: 0.3 }]}, options: { responsive: true, maintainAspectRatio: true } });
         };
         const getHbClassification = (hb) => {
             if (hb < 8) return { color: "text-red-500", textKey: "severeAnemia" }; if (hb < 10) return { color: "text-orange-500", textKey: "moderateAnemia" }; if (hb < 12) return { color: "text-yellow-500", textKey: "mildAnemia" }; return { color: "text-cyan-600", textKey: "likelyNormal" };
@@ -298,4 +325,4 @@
     </script>
 </body>
 </html>
-
+" selected. I want to change the URL. Make it "https://google.com"
