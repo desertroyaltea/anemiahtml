@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>MyAnemia</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MyAnemia">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="logo.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -14,231 +14,277 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font for English and Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        /* Define fonts for each language */
+        [lang="en"] body { font-family: 'Inter', sans-serif; }
+        [lang="ar"] body { font-family: 'Tajawal', sans-serif; }
         .spinner { border-top-color: #0891b2; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         main { padding-bottom: 90px; }
         .nav-active svg, .nav-active p { color: #0891b2; }
         .cropper-container { max-height: 60vh; }
+        /* Hide scrollbar for article gallery */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* RTL/LTR Icons for back button */
+        [dir="rtl"] .ltr-icon { display: none; }
+        [dir="rtl"] .rtl-icon { display: block; }
     </style>
 </head>
-<body class="text-gray-800">
+<body class="text-gray-800 bg-slate-50">
+
+    <!-- Language Switcher -->
+    <div id="lang-switcher-container" class="fixed top-4 left-4 z-50">
+        <button id="lang-switcher-btn" class="bg-white/80 backdrop-blur-sm w-10 h-10 rounded-full shadow-md flex items-center justify-center text-cyan-700 font-bold text-lg">
+            ع
+        </button>
+    </div>
 
     <main class="max-w-xl mx-auto p-4 md:p-6">
+        <!-- Dashboard View -->
         <div id="dashboard-view" class="view">
             <div class="flex justify-center mb-6">
-                <img src="logo.png" alt="MyAnemia Logo" class="w-24 h-auto">
+                <img src="https://placehold.co/100x100/FFFFFF/0891b2?text=Logo" alt="MyAnemia Logo" class="w-24 h-auto rounded-full">
             </div>
-             <header class="mb-8"><h1 class="text-3xl font-bold">Dashboard</h1><p class="text-gray-500">Your health summary at a glance.</p></header>
+             <header class="mb-8"><h1 data-key="dashboardTitle" class="text-3xl font-bold">Dashboard</h1><p data-key="dashboardSubtitle" class="text-gray-500">Your health summary at a glance.</p></header>
             <div class="space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-lg"><h2 class="font-semibold text-gray-500 text-lg mb-2">Latest Reading</h2><div id="latest-reading-dashboard" class="text-center py-4"><p class="text-gray-500">No readings yet. Tap the camera to start!</p></div></div>
+                <div class="bg-white p-6 rounded-2xl shadow-lg"><h2 data-key="latestReading" class="font-semibold text-gray-500 text-lg mb-2">Latest Reading</h2><div id="latest-reading-dashboard" class="text-center py-4"><p data-key="noReadingsYet" class="text-gray-500">No readings yet. Tap the camera to start!</p></div></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white p-4 rounded-2xl shadow-lg text-center"><h3 class="font-semibold text-gray-500 text-sm">Average (7 days)</h3><p id="avg-7-days" class="text-2xl font-bold mt-2">-</p></div>
-                    <div class="bg-white p-4 rounded-2xl shadow-lg text-center"><h3 class="font-semibold text-gray-500 text-sm">Total Readings</h3><p id="total-readings" class="text-2xl font-bold mt-2">0</p></div>
+                    <div class="bg-white p-4 rounded-2xl shadow-lg text-center"><h3 data-key="avg7days" class="font-semibold text-gray-500 text-sm">Average (7 days)</h3><p id="avg-7-days" class="text-2xl font-bold mt-2">-</p></div>
+                    <div class="bg-white p-4 rounded-2xl shadow-lg text-center"><h3 data-key="totalReadings" class="font-semibold text-gray-500 text-sm">Total Readings</h3><p id="total-readings" class="text-2xl font-bold mt-2">0</p></div>
+                </div>
+            </div>
+             <!-- Educational Articles Section -->
+            <div class="mt-8">
+                <h2 data-key="educationTitle" class="text-xl font-bold mb-4 px-1">Anemia Education</h2>
+                <div id="article-gallery" class="flex overflow-x-auto -mx-4 px-4 space-x-4 pb-4 no-scrollbar">
+                    <!-- Article cards will be generated by JS -->
                 </div>
             </div>
         </div>
-        <div id="history-view" class="view hidden"><header class="mb-8"><h1 class="text-3xl font-bold">Reading History</h1></header><div id="history-cards" class="space-y-4"></div></div>
-        <div id="progress-view" class="view hidden"><header class="mb-8"><h1 class="text-3xl font-bold">Progress</h1></header><div class="bg-white p-4 rounded-2xl shadow-lg"><canvas id="progress-chart"></canvas></div></div>
-        <div id="insights-view" class="view hidden"><header class="mb-8"><h1 class="text-3xl font-bold">Insights</h1></header><div id="insights-content" class="bg-white p-6 rounded-2xl shadow-lg space-y-4"></div></div>
+        <!-- History View -->
+        <div id="history-view" class="view hidden"><header class="mb-8"><h1 data-key="historyTitle" class="text-3xl font-bold">Reading History</h1></header><div id="history-cards" class="space-y-4"></div></div>
+        <!-- Progress View -->
+        <div id="progress-view" class="view hidden"><header class="mb-8"><h1 data-key="progressTitle" class="text-3xl font-bold">Progress</h1></header><div class="bg-white p-4 rounded-2xl shadow-lg"><canvas id="progress-chart"></canvas></div></div>
+        <!-- Insights View -->
+        <div id="insights-view" class="view hidden"><header class="mb-8"><h1 data-key="insightsTitle" class="text-3xl font-bold">Insights</h1></header><div id="insights-content" class="bg-white p-6 rounded-2xl shadow-lg space-y-4"></div></div>
+        <!-- Article View -->
+        <div id="article-view" class="view hidden">
+            <header class="mb-6 flex items-center justify-between">
+                <button id="back-to-dashboard-btn" class="text-cyan-600 p-2">
+                    <svg class="w-6 h-6 ltr-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    <svg class="w-6 h-6 rtl-icon hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <h1 id="article-title" class="text-xl font-bold text-center flex-1 -ml-10">Article Title</h1>
+            </header>
+            <div id="article-content" class="bg-white p-6 rounded-2xl shadow-lg space-y-4 leading-relaxed text-gray-600">
+                <!-- Article content will be injected here -->
+            </div>
+        </div>
     </main>
 
-    <footer class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white/80 backdrop-blur-sm border-t border-gray-200"><nav class="flex justify-around items-center h-20">
-        <button data-view="dashboard-view" class="nav-button nav-active text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg><p class="text-xs font-medium mt-1">Dashboard</p></button>
-        <button data-view="history-view" class="nav-button text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><p class="text-xs font-medium mt-1">History</p></button>
+    <!-- Navigation Footer -->
+    <footer id="main-footer" class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white/80 backdrop-blur-sm border-t border-gray-200"><nav class="flex justify-around items-center h-20">
+        <button data-view="dashboard-view" class="nav-button nav-active text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg><p data-key="navDashboard" class="text-xs font-medium mt-1">Dashboard</p></button>
+        <button data-view="history-view" class="nav-button text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><p data-key="navHistory" class="text-xs font-medium mt-1">History</p></button>
         <button id="camera-button" class="text-white bg-cyan-600 rounded-full w-16 h-16 flex items-center justify-center -mt-8 shadow-lg"><svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
-        <button data-view="progress-view" class="nav-button text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg><p class="text-xs font-medium mt-1">Progress</p></button>
-        <button data-view="insights-view" class="nav-button text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg><p class="text-xs font-medium mt-1">Insights</p></button>
+        <button data-view="progress-view" class="nav-button text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg><p data-key="navProgress" class="text-xs font-medium mt-1">Progress</p></button>
+        <button data-view="insights-view" class="nav-button text-center text-gray-500"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg><p data-key="navInsights" class="text-xs font-medium mt-1">Insights</p></button>
     </nav></footer>
     
-    <!-- MODALS -->
+    <!-- MODALS (Unchanged) -->
     <div id="camera-modal" class="hidden fixed inset-0 bg-gray-900/70 z-50 flex items-center justify-center p-4"><div class="bg-white w-full max-w-md p-6 rounded-2xl">
-        <h2 class="text-xl font-bold mb-4">New Reading</h2>
+        <h2 data-key="modalNewReading" class="text-xl font-bold mb-4">New Reading</h2>
         <div class="flex gap-4 mb-4">
-            <label for="camera-input-modal" class="flex-1 text-center cursor-pointer block bg-gray-100 text-gray-700 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-200"><svg class="h-8 w-8 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="mt-2 block font-semibold">Use Camera</span></label>
-            <label for="upload-input-modal" class="flex-1 text-center cursor-pointer block bg-gray-100 text-gray-700 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-200"><svg class="h-8 w-8 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span class="mt-2 block font-semibold">Upload</span></label>
+            <label for="camera-input-modal" class="flex-1 text-center cursor-pointer block bg-gray-100 text-gray-700 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-200"><svg class="h-8 w-8 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span data-key="modalUseCamera" class="mt-2 block font-semibold">Use Camera</span></label>
+            <label for="upload-input-modal" class="flex-1 text-center cursor-pointer block bg-gray-100 text-gray-700 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-200"><svg class="h-8 w-8 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span data-key="modalUpload" class="mt-2 block font-semibold">Upload</span></label>
         </div>
         <input type="file" accept="image/*" capture="environment" id="camera-input-modal" class="hidden"><input type="file" accept="image/*" id="upload-input-modal" class="hidden">
-        <button id="close-modal-btn" class="mt-4 w-full bg-gray-200 text-gray-700 py-2 rounded-md">Cancel</button>
+        <button id="close-modal-btn" class="mt-4 w-full bg-gray-200 text-gray-700 py-2 rounded-md"><span data-key="cancel">Cancel</span></button>
     </div></div>
-    
-    <div id="crop-modal" class="hidden fixed inset-0 bg-gray-900 z-50 flex flex-col p-4">
-        <div class="w-full max-w-md mx-auto my-auto bg-white p-6 rounded-2xl">
-            <h2 class="text-xl font-bold mb-2">Adjust Image</h2>
-            <p class="text-sm text-gray-500 mb-4">Please pan and zoom to focus on the lower eyelid region before confirming.</p>
-            <div class="cropper-container bg-gray-200">
-                <img id="image-to-crop" src="">
-            </div>
-            <div class="flex gap-4 mt-4">
-                <button id="back-crop-btn" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-md">Back</button>
-                <button id="confirm-crop-btn" class="flex-1 bg-cyan-600 text-white py-2 rounded-md">Confirm</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="analysis-spinner-modal" class="hidden fixed inset-0 bg-gray-900/70 z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md p-6 rounded-2xl text-center">
-             <div class="flex items-center justify-center space-x-2 text-gray-600">
-                 <div class="spinner w-8 h-8 rounded-full border-4 border-gray-200"></div>
-                 <span id="loader-text-modal" class="text-lg">Analyzing...</span>
-             </div>
-        </div>
-    </div>
-
-    <div id="error-modal" class="hidden fixed inset-0 bg-gray-900/70 z-50 flex items-center justify-center p-4"><div class="bg-white w-full max-w-md p-6 rounded-2xl text-center">
-        <svg class="h-12 w-12 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <h2 class="text-xl font-bold mt-4">Analysis Failed</h2><p id="error-message" class="text-gray-600 mt-2">An unknown error occurred.</p>
-        <button id="close-error-btn" class="mt-6 w-full bg-red-500 text-white py-2 rounded-md">Close</button>
-    </div></div>
+    <div id="crop-modal" class="hidden fixed inset-0 bg-gray-900 z-50 flex flex-col p-4"><div class="w-full max-w-md mx-auto my-auto bg-white p-6 rounded-2xl"><h2 data-key="modalAdjustImage" class="text-xl font-bold mb-2">Adjust Image</h2><p data-key="modalAdjustInfo" class="text-sm text-gray-500 mb-4">Please pan and zoom to focus on the lower eyelid region before confirming.</p><div class="cropper-container bg-gray-200"><img id="image-to-crop" src=""></div><div class="flex gap-4 mt-4"><button id="back-crop-btn" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-md"><span data-key="back">Back</span></button><button id="confirm-crop-btn" class="flex-1 bg-cyan-600 text-white py-2 rounded-md"><span data-key="confirm">Confirm</span></button></div></div></div>
+    <div id="analysis-spinner-modal" class="hidden fixed inset-0 bg-gray-900/70 z-50 flex items-center justify-center p-4"><div class="bg-white w-full max-w-md p-6 rounded-2xl text-center"><div class="flex items-center justify-center space-x-2 text-gray-600"><div class="spinner w-8 h-8 rounded-full border-4 border-gray-200"></div><span id="loader-text-modal" class="text-lg" data-key="analyzing">Analyzing...</span></div></div></div>
+    <div id="error-modal" class="hidden fixed inset-0 bg-gray-900/70 z-50 flex items-center justify-center p-4"><div class="bg-white w-full max-w-md p-6 rounded-2xl text-center"><svg class="h-12 w-12 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h2 data-key="errorTitle" class="text-xl font-bold mt-4">Analysis Failed</h2><p id="error-message" class="text-gray-600 mt-2" data-key="errorUnknown">An unknown error occurred.</p><button id="close-error-btn" class="mt-6 w-full bg-red-500 text-white py-2 rounded-md"><span data-key="close">Close</span></button></div></div>
     
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- CONFIG ---
-        // *** THIS IS THE CORRECTED URL ***
         const BACKEND_API_URL = "https://alna7el-anemia-pen-backend.hf.space/api/analyze";
         
+        // --- TRANSLATION & ARTICLE DATA ---
+        const translations = {
+            en: {
+                dashboardTitle: 'Dashboard', dashboardSubtitle: 'Your health summary at a glance.', latestReading: 'Latest Reading', noReadingsYet: 'No readings yet. Tap the camera to start!', avg7days: 'Average (7 days)', totalReadings: 'Total Readings', historyTitle: 'Reading History', pastReadingsHere: 'Your past readings will appear here.', progressTitle: 'Progress', chartLabel: 'Estimated Hb (g/dL)', insightsTitle: 'Insights', insightsNeed3: 'Take at least 3 readings to generate your first health insight.', insightsPositive: 'Positive Trend!', insightsPositiveDesc: (val) => `Your estimated Hb has increased by ${val} g/dL since you started tracking. Keep up the great work!`, insightsNegative: 'Downward Trend', insightsNegativeDesc: (val) => `Your estimated Hb has decreased by ${val} g/dL. It might be a good time to consult your doctor.`, insightsStable: 'Looking Stable', insightsStableDesc: 'Your estimated Hb levels have remained consistent. Consistency is key in managing your health.', navDashboard: 'Dashboard', navHistory: 'History', navProgress: 'Progress', navInsights: 'Insights', modalNewReading: 'New Reading', modalUseCamera: 'Use Camera', modalUpload: 'Upload', cancel: 'Cancel', modalAdjustImage: 'Adjust Image', modalAdjustInfo: 'Please pan and zoom to focus on the lower eyelid region before confirming.', back: 'Back', confirm: 'Confirm', analyzing: 'Analyzing...', uploadingAnalyzing: 'Uploading & Analyzing...', errorTitle: 'Analysis Failed', errorUnknown: 'An unknown error occurred.', close: 'Close', severeAnemia: 'Severe Anemia Suspected', moderateAnemia: 'Moderate Anemia Suspected', mildAnemia: 'Mild Anemia Suspected', likelyNormal: 'Likely Normal',
+                educationTitle: 'Anemia Education',
+                articles: [
+                    { id: 'what-is-anemia', imageUrl: 'https://images.unsplash.com/photo-1629842299723-524c1363539c?q=80&w=800&auto=format&fit=crop', title: 'Anemia Explained: Understanding Your Red Blood Cell Health', content: `<h3 class="text-lg font-bold text-gray-800">The Role of Red Blood Cells</h3><p>Anemia is a condition where your blood lacks enough healthy red blood cells or hemoglobin. Hemoglobin is the vital iron-rich protein in red blood cells that binds to oxygen in your lungs and carries it to tissues throughout your body.</p><p>When you have anemia, your body doesn't get enough oxygen-rich blood, leading to feelings of fatigue and weakness. It's like a city with not enough delivery trucks—essential supplies don't get where they need to go, and things slow down.</p><p class="mt-2 p-3 bg-cyan-50 border border-cyan-200 rounded-lg"><strong>Key takeaway:</strong> Anemia is more than just feeling tired; it's a sign that your body's oxygen delivery system is underperforming.</p>` },
+                    { id: 'anemia-types', imageUrl: 'https://images.unsplash.com/photo-1579165466949-5581353b6920?q=80&w=800&auto=format&fit=crop', title: 'Not Just One Type: A Look at Common Forms of Anemia', content: `<h3 class="text-lg font-bold text-gray-800">Identifying the Cause</h3><p>Anemia can be caused by different factors, leading to several common types:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>Iron-Deficiency Anemia:</strong> The most prevalent type worldwide. It occurs when your body doesn't have enough iron to produce hemoglobin. Causes include blood loss, poor diet, or an inability to absorb iron from food.</li><li><strong>Vitamin-Deficiency Anemia:</strong> Besides iron, your body needs folate and vitamin B-12 to produce sufficient healthy red blood cells. A diet lacking in these and other key nutrients can cause decreased red blood cell production.</li><li><strong>Anemia of Inflammation:</strong> Certain chronic diseases — such as cancer, HIV/AIDS, rheumatoid arthritis, kidney disease, and Crohn's disease — can interfere with the production of red blood cells.</li></ul><p>A proper diagnosis from a healthcare professional is crucial to determine the type of anemia you have and the appropriate treatment plan.</p>` },
+                    { id: 'anemia-diet', imageUrl: 'https://images.unsplash.com/photo-1540420773420-226c2de38014?q=80&w=800&auto=format&fit=crop', title: 'The Anemia Diet: 5 Key Nutrients to Boost Your Blood Health', content: `<h3 class="text-lg font-bold text-gray-800">Eating to Support Your Body</h3><p>Your diet is a powerful tool in managing many types of anemia. Prioritize these nutrient-rich foods:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>Iron:</strong> Found in lean meat, poultry, fish, lentils, beans, spinach, and fortified cereals.</li><li><strong>Vitamin C:</strong> This vitamin enhances iron absorption. Pair iron-rich foods with sources of vitamin C like citrus fruits, berries, bell peppers, and broccoli.</li><li><strong>Folate (Vitamin B9):</strong> Abundant in leafy green vegetables, citrus fruits, beans, and fortified breads.</li><li><strong>Vitamin B-12:</strong> Primarily found in meat, dairy products, and eggs.</li></ul><p class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg"><strong>Important Note:</strong> While a healthy diet is essential, it may not be enough. Always follow your doctor's advice regarding supplements, as too much iron can be harmful.</p>` },
+                    { id: 'anemia-symptoms', imageUrl: 'https://images.unsplash.com/photo-1552196563-55cd4e45efb3?q=80&w=800&auto=format&fit=crop', title: 'Are You Anemic? 7 Common Symptoms You Shouldn\'t Ignore', content: `<h3 class="text-lg font-bold text-gray-800">Listening to Your Body's Clues</h3><p>Anemia symptoms can develop slowly and may go unnoticed. Here are signs to watch for:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>Fatigue:</strong> The most common symptom, caused by the lack of oxygen reaching your muscles and tissues.</li><li><strong>Pale Skin:</strong> Especially noticeable in the face, nails, and the inner lining of the eyelids.</li><li><strong>Shortness of Breath:</strong> Your heart has to work harder to pump oxygen-rich blood, which can leave you feeling breathless.</li><li><strong>Dizziness or Lightheadedness:</strong> Your brain isn't getting enough oxygen.</li><li><strong>Cold Hands and Feet:</strong> Reduced blood flow can cause this sensation.</li><li><strong>Headaches:</strong> Can be another sign that your brain needs more oxygen.</li><li><strong>Brittle Nails or Hair Loss:</strong> In cases of iron deficiency, these signs can appear.</li></ul><p>If you're experiencing several of these symptoms, consulting a healthcare provider is recommended.</p>` },
+                    { id: 'living-with-anemia', imageUrl: 'https://images.unsplash.com/photo-1591258370814-2c65a95b7952?q=80&w=800&auto=format&fit=crop', title: 'Managing Anemia: A Practical Guide to Daily Life & Wellness', content: `<h3 class="text-lg font-bold text-gray-800">Creating a Supportive Lifestyle</h3><p>Managing anemia involves a partnership between you and your healthcare provider. Here are some lifestyle tips:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>Follow Your Treatment Plan:</strong> Adherence is key. Take any prescribed supplements or medications exactly as directed by your doctor.</li><li><strong>Balance Rest and Activity:</strong> Listen to your body's energy levels. Gentle exercise like walking can boost circulation and mood, but don't push yourself to exhaustion. Prioritize getting enough sleep.</li><li><strong>Communicate with Your Doctor:</strong> Keep your doctor informed about your symptoms and any side effects from treatment. Regular check-ups help track your progress.</li><li><strong>Stay Hydrated:</strong> Good hydration supports overall bodily functions, including blood circulation.</li></ul><p>With the right management strategy, you can lead a full and active life with anemia.</p>` }
+                ]
+            },
+            ar: {
+                dashboardTitle: 'لوحة التحكم', dashboardSubtitle: 'ملخص صحتك في لمحة.', latestReading: 'آخر قراءة', noReadingsYet: 'لا توجد قراءات بعد. اضغط على الكاميرا للبدء!', avg7days: 'متوسط (7 أيام)', totalReadings: 'إجمالي القراءات', historyTitle: 'سجل القراءات', pastReadingsHere: 'ستظهر قراءاتك السابقة هنا.', progressTitle: 'التقدم', chartLabel: 'الهيموجلوبين المقدر (جم/ديسيلتر)', insightsTitle: 'إحصاءات', insightsNeed3: 'خذ 3 قراءات على الأقل لإنشاء أول إحصاءاتك الصحية.', insightsPositive: 'اتجاه إيجابي!', insightsPositiveDesc: (val) => `ارتفع الهيموجلوبين المقدر لديك بمقدار ${val} جم/ديسيلتر منذ أن بدأت التتبع. استمر في العمل الرائع!`, insightsNegative: 'اتجاه هبوطي', insightsNegativeDesc: (val) => `انخفض الهيموجلوبين المقدر لديك بمقدار ${val} جم/ديسيلتر. قد يكون الوقت مناسبًا لاستشارة طبيبك.`, insightsStable: 'يبدو مستقرًا', insightsStableDesc: 'ظلت مستويات الهيموجلوبين المقدرة لديك ثابتة. الثبات هو مفتاح إدارة صحتك.', navDashboard: 'الرئيسية', navHistory: 'السجل', navProgress: 'التقدم', navInsights: 'إحصاءات', modalNewReading: 'قراءة جديدة', modalUseCamera: 'استخدام الكاميرا', modalUpload: 'رفع صورة', cancel: 'إلغاء', modalAdjustImage: 'تعديل الصورة', modalAdjustInfo: 'يرجى التحريك والتكبير للتركيز على منطقة الجفن السفلي قبل التأكيد.', back: 'رجوع', confirm: 'تأكيد', analyzing: 'جاري التحليل...', uploadingAnalyzing: 'جاري الرفع والتحليل...', errorTitle: 'فشل التحليل', errorUnknown: 'حدث خطأ غير معروف.', close: 'إغلاق', severeAnemia: 'يشتبه بفقر دم حاد', moderateAnemia: 'يشتبه بفقر دم متوسط', mildAnemia: 'يشتبه بفقر دم خفيف', likelyNormal: 'طبيعي على الأرجح',
+                educationTitle: 'التثقيف حول فقر الدم',
+                articles: [
+                    { id: 'what-is-anemia', imageUrl: 'https://images.unsplash.com/photo-1629842299723-524c1363539c?q=80&w=800&auto=format&fit=crop', title: 'شرح فقر الدم: فهم صحة خلايا الدم الحمراء', content: `<h3 class="text-lg font-bold text-gray-800">دور خلايا الدم الحمراء</h3><p>فقر الدم هو حالة يفتقر فيها دمك إلى ما يكفي من خلايا الدم الحمراء السليمة أو الهيموجلوبين. الهيموجلوبين هو البروتين الحيوي الغني بالحديد في خلايا الدم الحمراء الذي يرتبط بالأكسجين في رئتيك وينقله إلى الأنسجة في جميع أنحاء جسمك.</p><p>عندما تكون مصابًا بفقر الدم، لا يحصل جسمك على كمية كافية من الدم الغني بالأكسجين، مما يؤدي إلى الشعور بالتعب والضعف. الأمر أشبه بمدينة لا يوجد بها عدد كافٍ من شاحنات التوصيل - الإمدادات الأساسية لا تصل إلى حيث يجب أن تذهب، وتتباطأ الأمور.</p><p class="mt-2 p-3 bg-cyan-50 border border-cyan-200 rounded-lg"><strong>خلاصة القول:</strong> فقر الدم هو أكثر من مجرد الشعور بالتعب؛ إنها علامة على أن نظام توصيل الأكسجين في جسمك يعاني من ضعف في الأداء.</p>` },
+                    { id: 'anemia-types', imageUrl: 'https://images.unsplash.com/photo-1579165466949-5581353b6920?q=80&w=800&auto=format&fit=crop', title: 'ليس نوعًا واحدًا فقط: نظرة على الأشكال الشائعة لفقر الدم', content: `<h3 class="text-lg font-bold text-gray-800">تحديد السبب</h3><p>يمكن أن يحدث فقر الدم بسبب عوامل مختلفة، مما يؤدي إلى عدة أنواع شائعة:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>فقر الدم الناجم عن نقص الحديد:</strong> النوع الأكثر انتشارًا في جميع أنحاء العالم. يحدث عندما لا يحتوي جسمك على كمية كافية من الحديد لإنتاج الهيموجلوبين. تشمل الأسباب فقدان الدم أو سوء التغذية أو عدم القدرة على امتصاص الحديد من الطعام.</li><li><strong>فقر الدم الناجم عن نقص الفيتامينات:</strong> إلى جانب الحديد، يحتاج جسمك إلى حمض الفوليك وفيتامين ب 12 لإنتاج خلايا دم حمراء سليمة وكافية. يمكن أن يؤدي اتباع نظام غذائي يفتقر إلى هذه العناصر الغذائية الرئيسية الأخرى إلى انخفاض إنتاج خلايا الدم الحمراء.</li><li><strong>فقر الدم الناتج عن الالتهابات:</strong> يمكن أن تتداخل بعض الأمراض المزمنة - مثل السرطان وفيروس نقص المناعة البشرية/الإيدز والتهاب المفاصل الروماتويدي وأمراض الكلى ومرض كرون - مع إنتاج خلايا الدم الحمراء.</li></ul><p>التشخيص الصحيح من أخصائي الرعاية الصحية أمر بالغ الأهمية لتحديد نوع فقر الدم الذي تعاني منه وخطة العلاج المناسبة.</p>` },
+                    { id: 'anemia-diet', imageUrl: 'https://images.unsplash.com/photo-1540420773420-226c2de38014?q=80&w=800&auto=format&fit=crop', title: 'النظام الغذائي لفقر الدم: 5 عناصر غذائية أساسية لتعزيز صحة دمك', content: `<h3 class="text-lg font-bold text-gray-800">تناول الطعام لدعم جسمك</h3><p>نظامك الغذائي أداة قوية في إدارة العديد من أنواع فقر الدم. أعط الأولوية لهذه الأطعمة الغنية بالعناصر الغذائية:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>الحديد:</strong> يوجد في اللحوم الخالية من الدهون والدواجن والأسماك والعدس والفول والسبانخ والحبوب المدعمة.</li><li><strong>فيتامين ج:</strong> يعزز هذا الفيتامين امتصاص الحديد. قم بإقران الأطعمة الغنية بالحديد بمصادر فيتامين ج مثل الحمضيات والتوت والفلفل والبروكلي.</li><li><strong>حمض الفوليك (فيتامين ب 9):</strong> متوفر بكثرة في الخضروات الورقية الخضراء والحمضيات والفول والخبز المدعم.</li><li><strong>فيتامين ب 12:</strong> يوجد بشكل أساسي في اللحوم ومنتجات الألبان والبيض.</li></ul><p class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg"><strong>ملاحظة هامة:</strong> في حين أن اتباع نظام غذائي صحي أمر ضروري، إلا أنه قد لا يكون كافيًا. اتبع دائمًا نصيحة طبيبك بشأن المكملات الغذائية، حيث أن الإفراط في تناول الحديد يمكن أن يكون ضارًا.</p>` },
+                    { id: 'anemia-symptoms', imageUrl: 'https://images.unsplash.com/photo-1552196563-55cd4e45efb3?q=80&w=800&auto=format&fit=crop', title: 'هل أنت مصاب بفقر الدم؟ 7 أعراض شائعة لا يجب تجاهلها', content: `<h3 class="text-lg font-bold text-gray-800">الاستماع إلى إشارات جسمك</h3><p>يمكن أن تتطور أعراض فقر الدم ببطء وقد لا يلاحظها أحد. فيما يلي علامات يجب الانتباه إليها:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>الإرهاق:</strong> أكثر الأعراض شيوعًا، وينتج عن نقص الأكسجين الذي يصل إلى عضلاتك وأنسجتك.</li><li><strong>شحوب الجلد:</strong> يلاحظ بشكل خاص في الوجه والأظافر والبطانة الداخلية للجفون.</li><li><strong>ضيق التنفس:</strong> يجب على قلبك أن يعمل بجهد أكبر لضخ الدم الغني بالأكسجين، مما قد يجعلك تشعر بضيق في التنفس.</li><li><strong>الدوخة أو الدوار:</strong> لا يحصل دماغك على كمية كافية من الأكسجين.</li><li><strong>برودة اليدين والقدمين:</strong> يمكن أن يسبب انخفاض تدفق الدم هذا الإحساس.</li><li><strong>الصداع:</strong> يمكن أن يكون علامة أخرى على أن دماغك يحتاج إلى مزيد من الأكسجين.</li><li><strong>هشاشة الأظافر أو تساقط الشعر:</strong> في حالات نقص الحديد، يمكن أن تظهر هذه العلامات.</li></ul><p>إذا كنت تعاني من العديد من هذه الأعراض، فمن المستحسن استشارة مقدم الرعاية الصحية.</p>` },
+                    { id: 'living-with-anemia', imageUrl: 'https://images.unsplash.com/photo-1591258370814-2c65a95b7952?q=80&w=800&auto=format&fit=crop', title: 'إدارة فقر الدم: دليل عملي للحياة اليومية والعافية', content: `<h3 class="text-lg font-bold text-gray-800">خلق نمط حياة داعم</h3><p>تتضمن إدارة فقر الدم شراكة بينك وبين مقدم الرعاية الصحية الخاص بك. فيما يلي بعض النصائح حول نمط الحياة:</p><ul class="list-disc list-outside space-y-2 pl-5"><li><strong>اتبع خطة العلاج الخاصة بك:</strong> الالتزام هو المفتاح. تناول أي مكملات أو أدوية موصوفة تمامًا حسب توجيهات طبيبك.</li><li><strong>وازن بين الراحة والنشاط:</strong> استمع إلى مستويات طاقة جسمك. يمكن أن تعزز التمارين الخفيفة مثل المشي الدورة الدموية والمزاج، ولكن لا تضغط على نفسك حتى الإرهاق. أعط الأولوية للحصول على قسط كافٍ من النوم.</li><li><strong>تواصل مع طبيبك:</strong> أبقِ طبيبك على اطلاع بأعراضك وأي آثار جانبية للعلاج. تساعد الفحوصات المنتظمة في تتبع تقدمك.</li><li><strong>حافظ على رطوبة جسمك:</strong> يدعم الترطيب الجيد وظائف الجسم بشكل عام، بما في ذلك الدورة الدموية.</li></ul><p>باستخدام استراتيجية الإدارة الصحيحة، يمكنك أن تعيش حياة كاملة ونشطة مع فقر الدم.</p>` }
+                ]
+            }
+        };
+
         // --- DOM Elements & State ---
-        const navButtons = document.querySelectorAll('.nav-button'), views = document.querySelectorAll('.view');
+        const mainFooter = document.getElementById('main-footer');
+        const views = document.querySelectorAll('.view');
+        const navButtons = document.querySelectorAll('.nav-button');
         const cameraButton = document.getElementById('camera-button'), cameraModal = document.getElementById('camera-modal'), closeModalBtn = document.getElementById('close-modal-btn');
-        const cameraInputModal = document.getElementById('camera-input-modal'), uploadInputModal = document.getElementById('upload-input-modal');
         const analysisSpinnerModal = document.getElementById('analysis-spinner-modal'), loaderTextModal = document.getElementById('loader-text-modal');
         const errorModal = document.getElementById('error-modal'), errorMessageEl = document.getElementById('error-message'), closeErrorBtn = document.getElementById('close-error-btn');
         const cropModal = document.getElementById('crop-modal');
         const imageToCrop = document.getElementById('image-to-crop');
         const confirmCropBtn = document.getElementById('confirm-crop-btn');
         const backCropBtn = document.getElementById('back-crop-btn');
+        const cameraInputModal = document.getElementById('camera-input-modal'), uploadInputModal = document.getElementById('upload-input-modal');
+        const langSwitcherContainer = document.getElementById('lang-switcher-container'), langSwitcherBtn = document.getElementById('lang-switcher-btn');
+        const articleGallery = document.getElementById('article-gallery');
+        const articleView = document.getElementById('article-view');
+        const articleTitleEl = document.getElementById('article-title');
+        const articleContentEl = document.getElementById('article-content');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
         
-        let appState = { history: [] }, progressChart = null, cropper = null;
+        let appState = { history: [], language: 'en' }, progressChart = null, cropper = null;
         
-        // --- FUNCTIONS ---
-        const showView = (viewId) => {
-            views.forEach(v => v.classList.add('hidden'));
-            document.getElementById(viewId).classList.remove('hidden');
-            navButtons.forEach(b => b.classList.toggle('nav-active', b.dataset.view === viewId));
+        // --- LANGUAGE & TRANSLATION FUNCTIONS ---
+        const setLanguage = (lang) => {
+            appState.language = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            langSwitcherBtn.textContent = lang === 'en' ? 'ع' : 'E';
+            langSwitcherContainer.classList.toggle('left-4', lang === 'en');
+            langSwitcherContainer.classList.toggle('right-4', lang === 'ar');
+            langSwitcherContainer.classList.toggle('right-auto', lang === 'en');
+            langSwitcherContainer.classList.toggle('left-auto', lang === 'ar');
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.dataset.key;
+                if (translations[lang][key] && typeof translations[lang][key] === 'string') {
+                    el.textContent = translations[lang][key];
+                }
+            });
+            localStorage.setItem('myAnemia-lang', lang);
+            renderArticleGallery();
+            updateAllViews();
         };
 
-        const updateAllViews = () => { /* This function remains unchanged */ 
+        const toggleLanguage = () => setLanguage(appState.language === 'en' ? 'ar' : 'en');
+        
+        // --- ARTICLE & VIEW FUNCTIONS ---
+        const renderArticleGallery = () => {
+            const lang = appState.language;
+            const articles = translations[lang].articles;
+            articleGallery.innerHTML = articles.map(article => `
+                <div class="article-card flex-shrink-0 w-48 bg-white rounded-2xl shadow-lg cursor-pointer overflow-hidden transition-transform duration-200 hover:scale-105" data-article-id="${article.id}">
+                    <img src="${article.imageUrl}" alt="${article.title}" class="w-full h-24 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x200/e0f2fe/334155?text=Image';">
+                    <p class="p-3 font-semibold text-sm text-gray-800 leading-snug">${article.title}</p>
+                </div>
+            `).join('');
+        };
+
+        const showArticle = (articleId) => {
+            const lang = appState.language;
+            const article = translations[lang].articles.find(a => a.id === articleId);
+            if (!article) return;
+            articleTitleEl.textContent = article.title;
+            articleContentEl.innerHTML = article.content;
+            showView('article-view');
+        };
+
+        const showView = (viewId) => {
+            views.forEach(v => v.classList.add('hidden'));
+            const targetView = document.getElementById(viewId);
+            if(targetView) targetView.classList.remove('hidden');
+            navButtons.forEach(b => b.classList.toggle('nav-active', b.dataset.view === viewId));
+            mainFooter.style.display = (viewId === 'article-view') ? 'none' : '';
+        };
+
+        // --- CORE APP FUNCTIONS (Unchanged) ---
+        const updateAllViews = () => {
+            const lang = appState.language;
             const latestReadingDiv = document.getElementById('latest-reading-dashboard'), avg7DaysEl = document.getElementById('avg-7-days'), totalReadingsEl = document.getElementById('total-readings');
             totalReadingsEl.textContent = appState.history.length;
             if (appState.history.length > 0) {
-                const latest = appState.history[0]; const { color, text } = getHbClassification(latest.hb_value);
+                const latest = appState.history[0]; 
+                const { color, textKey } = getHbClassification(latest.hb_value);
+                const text = translations[lang][textKey];
                 latestReadingDiv.innerHTML = `<p class="text-5xl font-bold ${color}">${latest.hb_value.toFixed(2)} <span class="text-3xl font-medium text-gray-500">g/dL</span></p><p class="text-md font-semibold ${color} mt-2">${text}</p>`;
                 const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
                 const recentReadings = appState.history.filter(r => new Date(r.timestamp) > sevenDaysAgo);
                 if (recentReadings.length > 0) { const avg = recentReadings.reduce((s, r) => s + r.hb_value, 0) / recentReadings.length; avg7DaysEl.textContent = avg.toFixed(2); } else { avg7DaysEl.textContent = '-'; }
-            } else { latestReadingDiv.innerHTML = `<p class="text-gray-500">No readings yet. Tap the camera to start!</p>`; avg7DaysEl.textContent = '-'; }
+            } else { latestReadingDiv.innerHTML = `<p class="text-gray-500">${translations[lang].noReadingsYet}</p>`; avg7DaysEl.textContent = '-'; }
             const historyCardsDiv = document.getElementById('history-cards'); historyCardsDiv.innerHTML = '';
-            if (appState.history.length === 0) { historyCardsDiv.innerHTML = `<div class="bg-white text-center p-6 rounded-2xl"><p class="text-gray-500">Your past readings will appear here.</p></div>`; } else {
-                appState.history.forEach(r => { const c = document.createElement('div'); c.className = 'bg-white p-4 rounded-2xl shadow-md flex items-center space-x-4'; const dt = new Date(r.timestamp); const { color: cc } = getHbClassification(r.hb_value); c.innerHTML = `<img src="data:image/jpeg;base64,${r.crop_b64}" class="w-24 h-20 object-cover rounded-xl border"><div class="flex-1"><p class="font-semibold text-gray-800">${dt.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})}</p><p class="text-xs text-gray-500">${dt.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</p><p class="text-xl font-bold ${cc} mt-1">${r.hb_value.toFixed(2)} g/dL</p></div>`; historyCardsDiv.appendChild(c); });
+            if (appState.history.length === 0) { historyCardsDiv.innerHTML = `<div class="bg-white text-center p-6 rounded-2xl"><p class="text-gray-500">${translations[lang].pastReadingsHere}</p></div>`; } else {
+                const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
+                appState.history.forEach(r => { 
+                    const c = document.createElement('div'); c.className = 'bg-white p-4 rounded-2xl shadow-md flex items-center space-x-4'; const dt = new Date(r.timestamp); const { color: cc } = getHbClassification(r.hb_value); c.innerHTML = `<img src="data:image/jpeg;base64,${r.crop_b64}" class="w-24 h-20 object-cover rounded-xl border"><div class="flex-1"><p class="font-semibold text-gray-800">${dt.toLocaleDateString(locale,{year:'numeric',month:'long',day:'numeric'})}</p><p class="text-xs text-gray-500">${dt.toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'})}</p><p class="text-xl font-bold ${cc} mt-1">${r.hb_value.toFixed(2)} g/dL</p></div>`; historyCardsDiv.appendChild(c); });
             }
             updateChart();
             const insightsContent = document.getElementById('insights-content');
-            if (appState.history.length < 3) { insightsContent.innerHTML = `<p class="text-gray-500">Take at least 3 readings to generate your first health insight.</p>`; } else { const l = appState.history[0].hb_value, f = appState.history[appState.history.length-1].hb_value, t = l - f; let iH = ''; if (t > 0.5) { iH = `<div class="text-center"><p class="text-2xl">😃</p><p class="font-semibold mt-2">Positive Trend!</p><p class="text-gray-600">Your estimated Hb has increased by ${t.toFixed(2)} g/dL since you started tracking. Keep up the great work!</p></div>`; } else if (t < -0.5) { iH = `<div class="text-center"><p class="text-2xl">😟</p><p class="font-semibold mt-2">Downward Trend</p><p class="text-gray-600">Your estimated Hb has decreased by ${Math.abs(t).toFixed(2)} g/dL. It might be a good time to consult your doctor.</p></div>`; } else { iH = `<div class="text-center"><p class="text-2xl">😐</p><p class="font-semibold mt-2">Looking Stable</p><p class="text-gray-600">Your estimated Hb levels have remained consistent. Consistency is key in managing your health.</p></div>`; } insightsContent.innerHTML = iH; }
+            if (appState.history.length < 3) { insightsContent.innerHTML = `<p class="text-gray-500">${translations[lang].insightsNeed3}</p>`; } else { 
+                const l = appState.history[0].hb_value, f = appState.history[appState.history.length-1].hb_value, t = l - f; let iH = ''; if (t > 0.5) { iH = `<div class="text-center"><p class="text-2xl">😊</p><p class="font-semibold mt-2">${translations[lang].insightsPositive}</p><p class="text-gray-600">${translations[lang].insightsPositiveDesc(t.toFixed(2))}</p></div>`; } else if (t < -0.5) { iH = `<div class="text-center"><p class="text-2xl">😟</p><p class="font-semibold mt-2">${translations[lang].insightsNegative}</p><p class="text-gray-600">${translations[lang].insightsNegativeDesc(Math.abs(t).toFixed(2))}</p></div>`; } else { iH = `<div class="text-center"><p class="text-2xl">😐</p><p class="font-semibold mt-2">${translations[lang].insightsStable}</p><p class="text-gray-600">${translations[lang].insightsStableDesc}</p></div>`; } insightsContent.innerHTML = iH; 
+            }
         };
-
-        const updateChart = () => { /* This function remains unchanged */
-            if (appState.history.length === 0) return;
-            const ctx = document.getElementById('progress-chart').getContext('2d');
-            const labels = appState.history.map(r => new Date(r.timestamp).toLocaleDateString()).reverse();
-            const data = appState.history.map(r => r.hb_value).reverse();
-            if (progressChart) progressChart.destroy();
-            progressChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Estimated Hb (g/dL)', data, fill: true, borderColor: '#0891b2', backgroundColor: 'rgba(14, 165, 233, 0.1)', tension: 0.3 }]}, options: { responsive: true, maintainAspectRatio: true } });
+        const updateChart = () => {
+            if (appState.history.length === 0) return; const ctx = document.getElementById('progress-chart').getContext('2d'); const locale = appState.language === 'ar' ? 'ar-SA' : 'en-US'; const labels = appState.history.map(r => new Date(r.timestamp).toLocaleDateString(locale)).reverse(); const data = appState.history.map(r => r.hb_value).reverse(); if (progressChart) progressChart.destroy(); progressChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: translations[appState.language].chartLabel, data, fill: true, borderColor: '#0891b2', backgroundColor: 'rgba(14, 165, 233, 0.1)', tension: 0.3 }]}, options: { responsive: true, maintainAspectRatio: true } });
         };
-        const getHbClassification = (hb) => { /* This function remains unchanged */
-            if (hb < 8) return { color: "text-red-500", text: "Severe Anemia Suspected" };
-            if (hb < 10) return { color: "text-orange-500", text: "Moderate Anemia Suspected" };
-            if (hb < 12) return { color: "text-yellow-500", text: "Mild Anemia Suspected" };
-            return { color: "text-cyan-600", text: "Likely Normal" };
+        const getHbClassification = (hb) => {
+            if (hb < 8) return { color: "text-red-500", textKey: "severeAnemia" }; if (hb < 10) return { color: "text-orange-500", textKey: "moderateAnemia" }; if (hb < 12) return { color: "text-yellow-500", textKey: "mildAnemia" }; return { color: "text-cyan-600", textKey: "likelyNormal" };
         };
-
         const saveState = () => localStorage.setItem('hbTracker-history', JSON.stringify(appState.history));
         const loadState = () => { const saved = localStorage.getItem('hbTracker-history'); return saved ? JSON.parse(saved) : []; };
-
         const analyzeImage = async (base64Image) => {
-            analysisSpinnerModal.classList.remove('hidden');
-            loaderTextModal.textContent = 'Uploading & Analyzing...';
+            analysisSpinnerModal.classList.remove('hidden'); loaderTextModal.textContent = translations[appState.language].uploadingAnalyzing;
             try {
-                const response = await fetch(BACKEND_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ "image_b64": base64Image }) 
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ detail: "An unknown server error occurred." }));
-                    throw new Error(errorData.detail || `Server responded with status: ${response.status}`);
-                }
-                const result = await response.json();
-                const newReading = { hb_value: result.hb_value, crop_b64: result.crop_b64, timestamp: new Date().toISOString() };
-                appState.history.unshift(newReading);
-                saveState();
-                updateAllViews();
-            } catch (error) {
-                console.error("ANALYSIS FAILED:", error);
-                errorMessageEl.textContent = error.message;
-                errorModal.classList.remove('hidden');
-            } finally {
-                analysisSpinnerModal.classList.add('hidden');
-            }
+                const response = await fetch(BACKEND_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ "image_b64": base64Image }) });
+                if (!response.ok) { const errorData = await response.json().catch(() => ({ detail: translations[appState.language].errorUnknown })); throw new Error(errorData.detail || `Server responded with status: ${response.status}`); }
+                const result = await response.json(); const newReading = { hb_value: result.hb_value, crop_b64: result.crop_b64, timestamp: new Date().toISOString() }; appState.history.unshift(newReading); saveState(); updateAllViews();
+            } catch (error) { console.error("ANALYSIS FAILED:", error); errorMessageEl.textContent = error.message; errorModal.classList.remove('hidden'); } finally { analysisSpinnerModal.classList.add('hidden'); }
         };
-        
         const handleFileSelect = (file) => {
-            if (!file) return;
-            const objectURL = URL.createObjectURL(file);
-            imageToCrop.src = objectURL;
-            
-            cameraModal.classList.add('hidden');
-            cropModal.classList.remove('hidden');
-            
-            if (cropper) {
-                cropper.destroy();
-            }
-            cropper = new Cropper(imageToCrop, {
-                aspectRatio: 16 / 9,
-                viewMode: 1,
-                dragMode: 'move',
-                background: false,
-                autoCropArea: 0.8,
-            });
+            if (!file) return; const objectURL = URL.createObjectURL(file); imageToCrop.src = objectURL; cameraModal.classList.add('hidden'); cropModal.classList.remove('hidden'); if (cropper) { cropper.destroy(); }
+            cropper = new Cropper(imageToCrop, { aspectRatio: 16 / 9, viewMode: 1, dragMode: 'move', background: false, autoCropArea: 0.8 });
         };
         
         // --- ATTACH EVENT LISTENERS & INITIALIZE ---
+        langSwitcherBtn.addEventListener('click', toggleLanguage);
         navButtons.forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
         cameraButton.addEventListener('click', () => cameraModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => cameraModal.classList.add('hidden'));
         closeErrorBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
         cameraInputModal.addEventListener('change', (event) => handleFileSelect(event.target.files[0]));
         uploadInputModal.addEventListener('change', (event) => handleFileSelect(event.target.files[0]));
-        
-        backCropBtn.addEventListener('click', () => {
-            cropModal.classList.add('hidden');
-            cameraModal.classList.remove('hidden');
-            if (cropper) cropper.destroy();
-            cropper = null;
-            cameraInputModal.value = '';
-            uploadInputModal.value = '';
-        });
-        
+        backCropBtn.addEventListener('click', () => { cropModal.classList.add('hidden'); cameraModal.classList.remove('hidden'); if (cropper) cropper.destroy(); cropper = null; cameraInputModal.value = ''; uploadInputModal.value = ''; });
         confirmCropBtn.addEventListener('click', () => {
-            if (!cropper) return;
-            const croppedCanvas = cropper.getCroppedCanvas({
-                width: 800,
-                imageSmoothingQuality: 'high',
-            });
-            
-            const base64Cropped = croppedCanvas.toDataURL('image/jpeg').split(',')[1];
-            
-            cropModal.classList.add('hidden');
-            analyzeImage(base64Cropped);
-            
-            if (cropper) cropper.destroy();
-            cropper = null;
-            cameraInputModal.value = '';
-            uploadInputModal.value = '';
+            if (!cropper) return; const croppedCanvas = cropper.getCroppedCanvas({ width: 800, imageSmoothingQuality: 'high' }); const base64Cropped = croppedCanvas.toDataURL('image/jpeg').split(',')[1];
+            cropModal.classList.add('hidden'); analyzeImage(base64Cropped); if (cropper) cropper.destroy(); cropper = null; cameraInputModal.value = ''; uploadInputModal.value = '';
         });
+        articleGallery.addEventListener('click', (event) => {
+            const card = event.target.closest('.article-card');
+            if (card && card.dataset.articleId) {
+                showArticle(card.dataset.articleId);
+            }
+        });
+        backToDashboardBtn.addEventListener('click', () => showView('dashboard-view'));
         
-        const initializeApp = () => { appState.history = loadState(); updateAllViews(); };
+        const initializeApp = () => { 
+            appState.history = loadState(); 
+            const savedLang = localStorage.getItem('myAnemia-lang') || 'en';
+            setLanguage(savedLang);
+        };
         initializeApp();
     });
     </script>
