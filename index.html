@@ -740,19 +740,25 @@
                 return;
             }
             
-            articleGallery.innerHTML = articles.map(article => {
+            const articleHTML = [];
+            for (let i = 0; i < articles.length; i++) {
+                const article = articles[i];
                 const isBookmarked = appState.bookmarks.includes(article.id);
-                return `
+                const bookmarkHTML = isBookmarked ? '<div class="absolute top-2 right-2 bg-yellow-400 rounded-full p-2">⭐</div>' : '';
+                const placeholderURL = 'https://placehold.co/400x200/06b6d4/FFFFFF?text=' + encodeURIComponent(article.title);
+                
+                articleHTML.push(`
                 <div class="article-card flex-shrink-0 w-56 glass-card rounded-3xl shadow-lg cursor-pointer overflow-hidden card-hover" data-article-id="${article.id}">
                     <div class="relative">
-                        <img src="${article.imageUrl}" alt="${article.title}" class="w-full h-32 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x200/06b6d4/FFFFFF?text=${encodeURIComponent(article.title)}';">
-                        ${isBookmarked ? '<div class="absolute top-2 right-2 bg-yellow-400 rounded-full p-2">⭐</div>' : ''}
+                        <img src="${article.imageUrl}" alt="${article.title}" class="w-full h-32 object-cover" onerror="this.onerror=null;this.src='${placeholderURL}';">
+                        ${bookmarkHTML}
                         <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">⏱️ ${article.readTime}</div>
                     </div>
                     <p class="p-4 font-semibold text-sm text-gray-800 leading-snug">${article.title}</p>
-                </div>`;
-            }).join('');
+                </div>`);
+            }
             
+            articleGallery.innerHTML = articleHTML.join('');
             console.log('Rendered', articles.length, 'articles for language:', lang);
         };
         
@@ -1194,7 +1200,6 @@
         
         // --- CAMERA FUNCTIONS ---
         const checkPhotoQuality = (imageElement) => {
-            // Simple brightness check
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = imageElement.width;
@@ -1234,7 +1239,9 @@
                 autoCropArea: 0.8
             });
             
-            imageToCrop.onload = () => checkPhotoQuality(imageToCrop);
+            imageToCrop.onload = function() {
+                checkPhotoQuality(imageToCrop);
+            };
         };Url;
             cameraModal.classList.add('hidden');
             cropModal.classList.remove('hidden');
