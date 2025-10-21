@@ -331,49 +331,87 @@
             options: {responsive: true, maintainAspectRatio: true}
         });
     }
-    
-    function handleFile(file) {
-        if (!file) return;
-        const url = URL.createObjectURL(file);
-        document.getElementById('cropImg').src = url;
-        document.getElementById('cameraModal').classList.add('hidden');
-        document.getElementById('cropModal').classList.remove('hidden');
-        if (cropper) cropper.destroy();
-        cropper = new Cropper(document.getElementById('cropImg'), {
-            aspectRatio: 16/9,
-            viewMode: 1,
-            dragMode: 'move',
-            background: false,
-            autoCropArea: 0.8
-        });
-    }
-    
+
+    // --- ADD THIS ENTIRE FUNCTION ---
     async function analyze(b64) {
         document.getElementById('loadingModal').classList.remove('hidden');
+        
         try {
-            const res = await fetch(API, {
+            const response = await fetch(API, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({image_b64: b64})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_b64: b64 })
             });
-            if (!res.ok) throw new Error('Analysis failed');
-            const data = await res.json();
-            state.history.unshift({
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Analysis failed');
+            }
+
+            const data = await response.json();
+            
+            // Create new reading and add it to the start of the history
+            const newReading = {
                 hb: data.hb_value,
                 crop: data.crop_b64,
                 time: Date.now()
-            });
+            };
+            state.history.unshift(newReading);
+            
+            // Save and update
             localStorage.setItem('history', JSON.stringify(state.history));
             updateViews();
             showView('dashboardView');
-        } catch(e) {
-            document.getElementById('errorMsg').textContent = e.message;
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById('errorMsg').textContent = `Analysis Error: ${error.message}`;
             document.getElementById('errorModal').classList.remove('hidden');
         } finally {
             document.getElementById('loadingModal').classList.add('hidden');
         }
     }
     
+function handleFile(file) {
+        if (!file) return;
+        
+        const cropImg = document.getElementById('cropImg');
+        const url = URL.createObjectURL(file);
+        
+        // Destroy any old cropper instance first
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+
+        // Set the new image source
+        cropImg.src = url;
+
+        // --- THIS IS THE FIX ---
+        // We MUST wait for the image to finish loading *before* // initializing the cropper on it.
+        cropImg.onload = () => {
+            // Now the image is loaded, show the modal
+            document.getElementById('cameraModal').classList.add('hidden');
+            document.getElementById('cropModal').classList.remove('hidden');
+
+            // Initialize cropper on the *loaded* image
+            cropper = new Cropper(cropImg, {
+                // aspectRatio: 16/9, // REMOVED: This was forcing a bad shape
+                viewMode: 1,
+                dragMode: 'move',
+                background: false,
+                autoCropArea: 0.8
+            });
+        };
+        
+        // Handle cases where the image fails to load
+        cropImg.onerror = () => {
+            document.getElementById('errorMsg').textContent = "Failed to load image. Please try again.";
+            document.getElementById('errorModal').classList.remove('hidden');
+            document.getElementById('cameraModal').classList.remove('hidden');
+            document.getElementById('cropModal').classList.add('hidden');
+        };
+    }    
     // Event Listeners
     document.getElementById('langBtn').addEventListener('click', function() {
         setLang(state.lang === 'en' ? 'ar' : 'en');
