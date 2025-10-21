@@ -1230,7 +1230,10 @@
             cameraModal.classList.add('hidden');
             cropModal.classList.remove('hidden');
             
-            if (cropper) cropper.destroy();
+            if (cropper) {
+                cropper.destroy();
+            }
+            
             cropper = new Cropper(imageToCrop, {
                 aspectRatio: 16 / 9,
                 viewMode: 1,
@@ -1239,9 +1242,9 @@
                 autoCropArea: 0.8
             });
             
-            imageToCrop.onload = function() {
+            setTimeout(() => {
                 checkPhotoQuality(imageToCrop);
-            };
+            }, 100);
         };Url;
             cameraModal.classList.add('hidden');
             cropModal.classList.remove('hidden');
@@ -1256,7 +1259,7 @@
             });
             
             checkPhotoQuality(imageToCrop);
-        })
+        };
         
         const handleFileSelect = (file) => {
             if (!file) return;
