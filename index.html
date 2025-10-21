@@ -1452,8 +1452,13 @@
         closeErrorBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
         closeSuccessBtn.addEventListener('click', () => successModal.classList.add('hidden'));
         
-        cameraInputModal.addEventListener('change', (event) => handleFileSelect(event.target.files[0]));
-        uploadInputModal.addEventListener('change', (event) => handleFileSelect(event.target.files[0]));
+        cameraInputModal.addEventListener('change', (event) => {
+            handleFileSelect(event.target.files[0]);
+        });
+        
+        uploadInputModal.addEventListener('change', (event) => {
+            handleFileSelect(event.target.files[0]);
+        });
         
         backCropBtn.addEventListener('click', () => {
             cropModal.classList.add('hidden');
@@ -1563,11 +1568,17 @@
         
         // --- INITIALIZE ---
         const initializeApp = () => {
+            console.log('Initializing app...');
             loadState();
             
             const savedLang = localStorage.getItem('myAnemia-lang') || 'en';
+            console.log('Setting language to:', savedLang);
             setLanguage(savedLang);
             
+            console.log('Rendering articles...');
+            renderArticleGallery();
+            
+            console.log('Updating all views...');
             updateAllViews();
             
             // Show onboarding for first-time users
@@ -1575,8 +1586,11 @@
             if (!hasOnboarded) {
                 setTimeout(() => showOnboarding(), 500);
             }
+            
+            console.log('App initialized successfully');
         };
         
+        console.log('Starting initialization...');
         initializeApp();
     });
     </script>
