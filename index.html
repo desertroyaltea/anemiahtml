@@ -1,34 +1,30 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyAnemia</title>
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="MyAnemia">
-    <link rel="apple-touch-icon" href="logo.png">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    
     <style>
         [lang="en"] body { font-family: 'Inter', sans-serif; }
         [lang="ar"] body { font-family: 'Tajawal', sans-serif; }
-        body { background: #f8fafc; min-height: 100vh; }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
+        body { background: #f8fafc; }
+        .glass-card { 
+            background: rgba(255,255,255,0.85); 
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            border-radius: 24px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
         }
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.5);
-        }
+        .nav-active svg, .nav-active p { color: #0891b2; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        [dir="rtl"] .ltr-icon { display: none; }
+        [dir="rtl"] .rtl-icon { display: block !important; }
+        [dir="ltr"] .rtl-icon { display: none; }
         .blood-drop {
             width: 60px; height: 60px;
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
@@ -40,23 +36,15 @@
             0%, 100% { transform: rotate(-45deg) translateY(0); }
             50% { transform: rotate(-45deg) translateY(10px); }
         }
-        .btn-press:active { transform: scale(0.95); }
-        .card-hover:hover { transform: translateY(-4px); transition: all 0.3s ease; }
-        .nav-active svg, .nav-active p { color: #0891b2; }
-        [dir="rtl"] .ltr-icon { display: none; }
-        [dir="rtl"] .rtl-icon { display: block !important; }
-        [dir="ltr"] .rtl-icon { display: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="text-gray-800">
     <div class="fixed top-4 right-4 z-50">
-        <button id="lang-btn" class="glass-card w-10 h-10 rounded-full shadow-md flex items-center justify-center text-cyan-700 font-bold text-lg btn-press">ع</button>
+        <button id="langBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold">ع</button>
     </div>
 
-    <main class="max-w-xl mx-auto p-4 md:p-6 pb-40">
-        <div id="dashboard-view" class="view">
+    <main class="max-w-xl mx-auto p-4 pb-32">
+        <div id="dashboardView">
             <div class="flex justify-between items-center mb-6">
                 <img src="logo.png" alt="Logo" class="w-20 h-20 rounded-full shadow-lg" onerror="this.style.display='none'">
                 <div id="streak" class="glass-card px-4 py-2 rounded-full mt-12">
@@ -64,368 +52,394 @@
                     <span class="font-bold text-gray-700">0</span>
                 </div>
             </div>
-            <header class="mb-6">
-                <h1 data-key="dashboardTitle" class="text-3xl font-bold text-gray-800">Dashboard</h1>
-                <p data-key="dashboardSubtitle" class="text-gray-600">Your health summary</p>
-            </header>
-            <div class="glass-card p-6 rounded-3xl shadow-lg mb-6">
-                <h2 data-key="latestReading" class="font-semibold text-gray-700 text-lg mb-2">Latest Reading</h2>
-                <div id="latest-reading" class="text-center py-4">
-                    <p data-key="noReadingsYet" class="text-gray-500">No readings yet</p>
+            <h1 id="title" class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
+            <p id="subtitle" class="text-gray-600 mb-6">Your health summary</p>
+            
+            <div class="glass-card p-6 mb-6">
+                <h2 id="latestReadingTitle" class="font-semibold text-gray-700 mb-2">Latest Reading</h2>
+                <div id="latestReading" class="text-center py-4">
+                    <p id="noReadings" class="text-gray-500">No readings yet. Tap camera to start!</p>
                 </div>
             </div>
+            
             <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="glass-card p-4 rounded-3xl shadow-lg text-center">
-                    <h3 data-key="avg7days" class="font-semibold text-gray-600 text-sm">Average (7 days)</h3>
-                    <p id="avg-7" class="text-2xl font-bold text-cyan-600 mt-2">-</p>
+                <div class="glass-card p-4 text-center">
+                    <p id="avg7Label" class="text-sm text-gray-600">Average (7 days)</p>
+                    <p id="avg" class="text-2xl font-bold text-cyan-600 mt-2">-</p>
                 </div>
-                <div class="glass-card p-4 rounded-3xl shadow-lg text-center">
-                    <h3 data-key="totalReadings" class="font-semibold text-gray-600 text-sm">Total Readings</h3>
+                <div class="glass-card p-4 text-center">
+                    <p id="totalLabel" class="text-sm text-gray-600">Total Readings</p>
                     <p id="total" class="text-2xl font-bold text-cyan-600 mt-2">0</p>
                 </div>
             </div>
-            <div class="mt-8">
-                <h2 data-key="educationTitle" class="text-xl font-bold text-gray-800 mb-4">Anemia Education</h2>
-                <div id="articles" class="flex overflow-x-auto -mx-4 px-4 space-x-4 pb-4 no-scrollbar"></div>
-            </div>
+            
+            <h2 id="educationTitle" class="text-xl font-bold text-gray-800 mb-4">Anemia Education</h2>
+            <div id="articles" class="flex overflow-x-auto gap-4 no-scrollbar -mx-4 px-4"></div>
         </div>
 
-        <div id="history-view" class="view hidden">
-            <header class="mb-6">
-                <h1 data-key="historyTitle" class="text-3xl font-bold text-gray-800">History</h1>
-            </header>
-            <div id="history-cards" class="space-y-4"></div>
+        <div id="historyView" class="hidden">
+            <h1 id="historyTitle" class="text-3xl font-bold text-gray-800 mb-6">History</h1>
+            <div id="historyCards"></div>
         </div>
 
-        <div id="progress-view" class="view hidden">
-            <header class="mb-6">
-                <h1 data-key="progressTitle" class="text-3xl font-bold text-gray-800">Progress</h1>
-            </header>
-            <div class="glass-card p-6 rounded-3xl shadow-lg">
+        <div id="progressView" class="hidden">
+            <h1 id="progressTitle" class="text-3xl font-bold text-gray-800 mb-6">Progress</h1>
+            <div class="glass-card p-6">
                 <canvas id="chart"></canvas>
             </div>
         </div>
 
-        <div id="insights-view" class="view hidden">
-            <header class="mb-6">
-                <h1 data-key="insightsTitle" class="text-3xl font-bold text-gray-800">Insights</h1>
-            </header>
-            <div id="insights" class="glass-card p-6 rounded-3xl shadow-lg"></div>
+        <div id="insightsView" class="hidden">
+            <h1 id="insightsTitle" class="text-3xl font-bold text-gray-800 mb-6">Insights</h1>
+            <div id="insights" class="glass-card p-6"></div>
         </div>
 
-        <div id="article-view" class="view hidden">
-            <header class="mb-6 flex items-center justify-between">
-                <button id="back-btn" class="glass-card p-3 rounded-xl text-cyan-600 btn-press">
-                    <svg class="w-6 h-6 ltr-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    <svg class="w-6 h-6 rtl-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <h1 id="article-title" class="text-xl font-bold text-gray-800 flex-1 text-center">Article</h1>
-                <div class="w-14"></div>
-            </header>
-            <img id="article-img" src="" class="w-full h-48 object-cover rounded-3xl mb-4 shadow-lg">
-            <div id="article-content" class="glass-card p-6 rounded-3xl shadow-lg leading-relaxed text-gray-600"></div>
+        <div id="articleView" class="hidden">
+            <button id="backBtn" class="glass-card p-3 mb-4 text-cyan-600">
+                <svg class="w-6 h-6 ltr-icon inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <svg class="w-6 h-6 rtl-icon inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <img id="articleImg" src="" class="w-full h-48 object-cover rounded-3xl mb-4">
+            <h1 id="articleTitle" class="text-2xl font-bold text-gray-800 mb-4">Article</h1>
+            <div id="articleContent" class="glass-card p-6 leading-relaxed text-gray-600"></div>
         </div>
     </main>
 
-    <footer class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto glass-nav">
+    <footer class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white/90 backdrop-blur-lg border-t">
         <nav class="flex justify-around items-center h-20">
-            <button data-view="dashboard-view" class="nav-button nav-active text-center text-gray-500 btn-press">
-                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                <p data-key="navDashboard" class="text-xs font-medium mt-1">Dashboard</p>
+            <button class="navBtn nav-active text-gray-500 text-center" data-view="dashboardView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h2v2H4V6zm6 0h2v2h-2V6zm6 0h2v2h-2V6zM4 12h2v2H4v-2zm6 0h2v2h-2v-2zm6 0h2v2h-2v-2zM4 18h2v2H4v-2zm6 0h2v2h-2v-2zm6 0h2v2h-2v-2z"/></svg>
+                <p id="navDashboard" class="text-xs mt-1">Dashboard</p>
             </button>
-            <button data-view="history-view" class="nav-button text-center text-gray-500 btn-press">
-                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <p data-key="navHistory" class="text-xs font-medium mt-1">History</p>
+            <button class="navBtn text-gray-500 text-center" data-view="historyView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p id="navHistory" class="text-xs mt-1">History</p>
             </button>
-            <button id="camera-btn" class="text-white bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-full w-16 h-16 flex items-center justify-center -mt-8 shadow-xl btn-press">
-                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <button id="cameraBtn" class="bg-gradient-to-br from-cyan-500 to-cyan-700 text-white rounded-full w-16 h-16 flex items-center justify-center -mt-8 shadow-xl">
+                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
-            <button data-view="progress-view" class="nav-button text-center text-gray-500 btn-press">
-                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                <p data-key="navProgress" class="text-xs font-medium mt-1">Progress</p>
+            <button class="navBtn text-gray-500 text-center" data-view="progressView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                <p id="navProgress" class="text-xs mt-1">Progress</p>
             </button>
-            <button data-view="insights-view" class="nav-button text-center text-gray-500 btn-press">
-                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                <p data-key="navInsights" class="text-xs font-medium mt-1">Insights</p>
+            <button class="navBtn text-gray-500 text-center" data-view="insightsView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9.7 17h4.7M12 3v1m6.4 1.6l-.7.7M21 12h-1M4 12H3m3.3-5.7l-.7-.7m2.8 9.9a5 5 0 117 0l-.5.5A3.4 3.4 0 0014 18.5V19a2 2 0 11-4 0v-.5c0-.9-.4-1.8-1-2.4l-.5-.5z"/></svg>
+                <p id="navInsights" class="text-xs mt-1">Insights</p>
             </button>
         </nav>
     </footer>
 
-    <div id="camera-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md p-6 rounded-3xl">
-            <h2 data-key="modalNewReading" class="text-xl font-bold mb-4">New Reading</h2>
-            <div class="flex gap-4 mb-4">
-                <label for="camera-input" class="flex-1 text-center cursor-pointer block bg-gradient-to-br from-cyan-50 to-cyan-100 text-gray-700 py-6 px-4 rounded-2xl border-2 border-dashed border-cyan-300 btn-press">
-                    <svg class="h-8 w-8 mx-auto text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span data-key="modalUseCamera" class="mt-2 block font-semibold">Use Camera</span>
+    <div id="cameraModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4">New Reading</h2>
+            <div class="flex gap-4">
+                <label class="flex-1 cursor-pointer bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-2xl border-2 border-dashed border-cyan-300 text-center">
+                    <svg class="h-8 w-8 mx-auto text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span id="useCamera" class="mt-2 block font-semibold">Use Camera</span>
+                    <input type="file" accept="image/*" capture="environment" id="cameraInput" class="hidden">
                 </label>
-                <label for="upload-input" class="flex-1 text-center cursor-pointer block bg-gradient-to-br from-purple-50 to-purple-100 text-gray-700 py-6 px-4 rounded-2xl border-2 border-dashed border-purple-300 btn-press">
-                    <svg class="h-8 w-8 mx-auto text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span data-key="modalUpload" class="mt-2 block font-semibold">Upload</span>
+                <label class="flex-1 cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-2xl border-2 border-dashed border-purple-300 text-center">
+                    <svg class="h-8 w-8 mx-auto text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span id="upload" class="mt-2 block font-semibold">Upload</span>
+                    <input type="file" accept="image/*" id="uploadInput" class="hidden">
                 </label>
             </div>
-            <input type="file" accept="image/*" capture="environment" id="camera-input" class="hidden">
-            <input type="file" accept="image/*" id="upload-input" class="hidden">
-            <button id="close-modal" class="mt-4 w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">
-                <span data-key="cancel">Cancel</span>
+            <button id="closeModal" class="mt-4 w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold">
+                <span id="cancel">Cancel</span>
             </button>
         </div>
     </div>
 
-    <div id="crop-modal" class="hidden fixed inset-0 bg-black z-50 flex flex-col p-4">
-        <div class="w-full max-w-md mx-auto my-auto glass-card p-6 rounded-3xl">
-            <h2 data-key="modalAdjustImage" class="text-xl font-bold mb-2">Adjust Image</h2>
-            <p data-key="modalAdjustInfo" class="text-sm text-gray-500 mb-4">Focus on the eyelid</p>
-            <div class="cropper-container bg-gray-200 rounded-xl overflow-hidden">
-                <img id="image-to-crop" src="">
+    <div id="cropModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6">
+            <h2 id="adjustTitle" class="text-xl font-bold mb-2">Adjust Image</h2>
+            <p id="adjustInfo" class="text-sm text-gray-500 mb-4">Focus on the lower eyelid</p>
+            <div class="bg-gray-200 rounded-xl overflow-hidden mb-4">
+                <img id="cropImg" src="">
             </div>
-            <div class="flex gap-4 mt-4">
-                <button id="back-crop" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">
-                    <span data-key="back">Back</span>
+            <div class="flex gap-4">
+                <button id="backCrop" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold">
+                    <span id="back">Back</span>
                 </button>
-                <button id="confirm-crop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press">
-                    <span data-key="confirm">Confirm</span>
+                <button id="confirmCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold">
+                    <span id="confirm">Confirm</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="loading-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md p-8 rounded-3xl text-center">
-            <div class="flex flex-col items-center space-y-4">
-                <div class="blood-drop"></div>
-                <span data-key="analyzing" class="text-lg font-semibold text-gray-700">Analyzing...</span>
-            </div>
+    <div id="loadingModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+        <div class="glass-card p-8 text-center">
+            <div class="blood-drop mx-auto mb-4"></div>
+            <p id="analyzing" class="text-lg font-semibold">Analyzing...</p>
         </div>
     </div>
 
-    <div id="error-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md p-6 rounded-3xl text-center">
+    <div id="errorModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6 text-center">
             <div class="text-6xl mb-4">😔</div>
-            <h2 data-key="errorTitle" class="text-xl font-bold mt-4">Oops!</h2>
-            <p id="error-msg" class="text-gray-600 mt-2">Something went wrong</p>
-            <button id="close-error" class="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-semibold btn-press">
-                <span data-key="close">Close</span>
+            <h2 id="errorTitle" class="text-xl font-bold">Oops!</h2>
+            <p id="errorMsg" class="text-gray-600 mt-2">Something went wrong</p>
+            <button id="closeError" class="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-semibold">
+                <span id="closeBtn">Close</span>
             </button>
         </div>
     </div>
 
     <script>
-    (function() {
-        'use strict';
-        
-        const API_URL = "https://your-render-url.onrender.com/api/analyze";
-        
-        const translations = {
-            en: {
-                dashboardTitle: 'Dashboard', dashboardSubtitle: 'Your health summary', latestReading: 'Latest Reading',
-                noReadingsYet: 'No readings yet', avg7days: 'Average (7 days)', totalReadings: 'Total Readings',
-                historyTitle: 'History', progressTitle: 'Progress', insightsTitle: 'Insights',
-                navDashboard: 'Dashboard', navHistory: 'History', navProgress: 'Progress', navInsights: 'Insights',
-                modalNewReading: 'New Reading', modalUseCamera: 'Use Camera', modalUpload: 'Upload',
-                cancel: 'Cancel', modalAdjustImage: 'Adjust Image', modalAdjustInfo: 'Focus on the eyelid',
-                back: 'Back', confirm: 'Confirm', analyzing: 'Analyzing...', errorTitle: 'Oops!', close: 'Close',
-                educationTitle: 'Anemia Education',
-                articles: [
-                    {id: 'a1', img: 'anemia-explained.png', title: 'Understanding Anemia', time: '3 min',
-                     content: '<h3 class="text-lg font-bold mb-3">Red Blood Cells</h3><p>Anemia is when your blood lacks healthy red blood cells or hemoglobin.</p>'},
-                    {id: 'a2', img: 'anemia-types.png', title: 'Types of Anemia', time: '4 min',
-                     content: '<h3 class="text-lg font-bold mb-3">Different Types</h3><p>Iron-deficiency is most common worldwide.</p>'},
-                    {id: 'a3', img: 'anemia-diet.png', title: 'Nutrition Guide', time: '5 min',
-                     content: '<h3 class="text-lg font-bold mb-3">Foods That Help</h3><p>Eat iron-rich foods like meat, spinach, lentils.</p>'}
-                ]
-            },
-            ar: {
-                dashboardTitle: 'لوحة التحكم', dashboardSubtitle: 'ملخص صحتك', latestReading: 'آخر قراءة',
-                noReadingsYet: 'لا توجد قراءات', avg7days: 'متوسط (7 أيام)', totalReadings: 'إجمالي القراءات',
-                historyTitle: 'السجل', progressTitle: 'التقدم', insightsTitle: 'إحصاءات',
-                navDashboard: 'الرئيسية', navHistory: 'السجل', navProgress: 'التقدم', navInsights: 'إحصاءات',
-                modalNewReading: 'قراءة جديدة', modalUseCamera: 'استخدام الكاميرا', modalUpload: 'رفع صورة',
-                cancel: 'إلغاء', modalAdjustImage: 'تعديل الصورة', modalAdjustInfo: 'ركز على الجفن',
-                back: 'رجوع', confirm: 'تأكيد', analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', close: 'إغلاق',
-                educationTitle: 'التثقيف حول فقر الدم',
-                articles: [
-                    {id: 'a1', img: 'anemia-explained.png', title: 'فهم فقر الدم', time: '3 دقائق',
-                     content: '<h3 class="text-lg font-bold mb-3 text-right">خلايا الدم الحمراء</h3><p class="text-right">فقر الدم هو نقص في خلايا الدم الحمراء.</p>'},
-                    {id: 'a2', img: 'anemia-types.png', title: 'أنواع فقر الدم', time: '4 دقائق',
-                     content: '<h3 class="text-lg font-bold mb-3 text-right">أنواع مختلفة</h3><p class="text-right">نقص الحديد هو الأكثر شيوعاً.</p>'},
-                    {id: 'a3', img: 'anemia-diet.png', title: 'دليل التغذية', time: '5 دقائق',
-                     content: '<h3 class="text-lg font-bold mb-3 text-right">أطعمة مفيدة</h3><p class="text-right">تناول الأطعمة الغنية بالحديد.</p>'}
-                ]
-            }
-        };
-        
-        let state = {history: [], lang: 'en'};
-        let cropper = null;
-        let chart = null;
-        
-        function $(id) {return document.getElementById(id);}
-        function $$(sel) {return document.querySelectorAll(sel);}
-        
-        function setLang(lang) {
-            state.lang = lang;
-            document.documentElement.lang = lang;
-            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-            $('lang-btn').textContent = lang === 'en' ? 'ع' : 'E';
-            $$('[data-key]').forEach(el => {
-                const key = el.dataset.key;
-                if (translations[lang][key]) el.textContent = translations[lang][key];
-            });
-            renderArticles();
-            updateViews();
-            localStorage.setItem('lang', lang);
+    const API = "https://your-render-url.onrender.com/api/analyze";
+    
+    const translations = {
+        en: {
+            title: 'Dashboard', subtitle: 'Your health summary',
+            latestReadingTitle: 'Latest Reading', noReadings: 'No readings yet. Tap camera!',
+            avg7Label: 'Average (7 days)', totalLabel: 'Total Readings',
+            historyTitle: 'History', progressTitle: 'Progress', insightsTitle: 'Insights',
+            educationTitle: 'Anemia Education',
+            navDashboard: 'Dashboard', navHistory: 'History', navProgress: 'Progress', navInsights: 'Insights',
+            modalTitle: 'New Reading', useCamera: 'Use Camera', upload: 'Upload', cancel: 'Cancel',
+            adjustTitle: 'Adjust Image', adjustInfo: 'Focus on the lower eyelid', back: 'Back', confirm: 'Confirm',
+            analyzing: 'Analyzing...', errorTitle: 'Oops!', closeBtn: 'Close',
+            articles: [
+                {id:'a1', img:'anemia-explained.png', title:'Understanding Anemia', time:'3 min',
+                 content:'<h3 class="text-lg font-bold mb-3">Red Blood Cells</h3><p class="mb-3">Anemia is when your blood lacks healthy red blood cells or hemoglobin.</p><p>When you have anemia, your body doesn\'t get enough oxygen-rich blood, leading to fatigue and weakness.</p>'},
+                {id:'a2', img:'anemia-types.png', title:'Types of Anemia', time:'4 min',
+                 content:'<h3 class="text-lg font-bold mb-3">Different Types</h3><p class="mb-3">Iron-deficiency anemia is most common worldwide.</p><p>Vitamin-deficiency and chronic disease anemia are also common.</p>'},
+                {id:'a3', img:'anemia-diet.png', title:'Nutrition Guide', time:'5 min',
+                 content:'<h3 class="text-lg font-bold mb-3">Foods That Help</h3><p class="mb-3">Eat iron-rich foods like lean meat, fish, lentils, beans, and spinach.</p><p>Pair with vitamin C sources for better absorption.</p>'}
+            ]
+        },
+        ar: {
+            title: 'لوحة التحكم', subtitle: 'ملخص صحتك',
+            latestReadingTitle: 'آخر قراءة', noReadings: 'لا توجد قراءات. اضغط الكاميرا!',
+            avg7Label: 'متوسط (7 أيام)', totalLabel: 'إجمالي القراءات',
+            historyTitle: 'السجل', progressTitle: 'التقدم', insightsTitle: 'إحصاءات',
+            educationTitle: 'التثقيف حول فقر الدم',
+            navDashboard: 'الرئيسية', navHistory: 'السجل', navProgress: 'التقدم', navInsights: 'إحصاءات',
+            modalTitle: 'قراءة جديدة', useCamera: 'استخدام الكاميرا', upload: 'رفع صورة', cancel: 'إلغاء',
+            adjustTitle: 'تعديل الصورة', adjustInfo: 'ركز على الجفن السفلي', back: 'رجوع', confirm: 'تأكيد',
+            analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', closeBtn: 'إغلاق',
+            articles: [
+                {id:'a1', img:'anemia-explained.png', title:'فهم فقر الدم', time:'3 دقائق',
+                 content:'<h3 class="text-lg font-bold mb-3 text-right">خلايا الدم الحمراء</h3><p class="mb-3 text-right">فقر الدم هو نقص في خلايا الدم الحمراء أو الهيموجلوبين.</p><p class="text-right">عندما تكون مصاباً بفقر الدم، لا يحصل جسمك على كمية كافية من الدم الغني بالأكسجين.</p>'},
+                {id:'a2', img:'anemia-types.png', title:'أنواع فقر الدم', time:'4 دقائق',
+                 content:'<h3 class="text-lg font-bold mb-3 text-right">أنواع مختلفة</h3><p class="mb-3 text-right">فقر الدم الناجم عن نقص الحديد هو الأكثر شيوعاً.</p><p class="text-right">نقص الفيتامينات والأمراض المزمنة أيضاً شائعة.</p>'},
+                {id:'a3', img:'anemia-diet.png', title:'دليل التغذية', time:'5 دقائق',
+                 content:'<h3 class="text-lg font-bold mb-3 text-right">أطعمة مفيدة</h3><p class="mb-3 text-right">تناول الأطعمة الغنية بالحديد مثل اللحوم والأسماك والعدس والسبانخ.</p><p class="text-right">قم بإقرانها مع مصادر فيتامين ج لامتصاص أفضل.</p>'}
+            ]
         }
+    };
+    
+    let state = {history:[], lang:'en'};
+    let cropper = null;
+    let chart = null;
+    
+    function setLang(lang) {
+        state.lang = lang;
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.getElementById('langBtn').textContent = lang === 'en' ? 'ع' : 'E';
         
-        function renderArticles() {
-            const arts = translations[state.lang].articles;
-            $('articles').innerHTML = arts.map(a => `
-                <div class="article-card flex-shrink-0 w-56 glass-card rounded-3xl shadow-lg cursor-pointer overflow-hidden card-hover" data-id="${a.id}">
-                    <div class="relative">
-                        <img src="${a.img}" class="w-full h-32 object-cover" onerror="this.src='https://placehold.co/400x200/06b6d4/FFF'">
-                        <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">⏱️ ${a.time}</div>
-                    </div>
-                    <p class="p-4 font-semibold text-sm text-gray-800">${a.title}</p>
+        const t = translations[lang];
+        Object.keys(t).forEach(key => {
+            const el = document.getElementById(key);
+            if (el && typeof t[key] === 'string') el.textContent = t[key];
+        });
+        
+        renderArticles();
+        updateViews();
+        localStorage.setItem('lang', lang);
+    }
+    
+    function renderArticles() {
+        const arts = translations[state.lang].articles;
+        const html = arts.map(a => 
+            `<div class="articleCard min-w-[224px] glass-card overflow-hidden cursor-pointer hover:scale-105 transition" data-id="${a.id}">
+                <div class="relative">
+                    <img src="${a.img}" class="w-full h-32 object-cover" onerror="this.src='https://placehold.co/400x200/06b6d4/FFF?text=${encodeURIComponent(a.title)}'">
+                    <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">⏱️ ${a.time}</div>
                 </div>
-            `).join('');
-        }
+                <p class="p-4 font-semibold text-sm">${a.title}</p>
+            </div>`
+        ).join('');
+        document.getElementById('articles').innerHTML = html;
+    }
+    
+    function showView(id) {
+        document.querySelectorAll('[id$="View"]').forEach(v => v.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        document.querySelectorAll('.navBtn').forEach(b => {
+            b.classList.toggle('nav-active', b.dataset.view === id);
+        });
+        if (id === 'progressView') setTimeout(updateChart, 50);
+    }
+    
+    function updateViews() {
+        const saved = localStorage.getItem('history');
+        if (saved) state.history = JSON.parse(saved);
         
-        function showView(id) {
-            $$('.view').forEach(v => v.classList.add('hidden'));
-            $(id).classList.remove('hidden');
-            $$('.nav-button').forEach(b => b.classList.toggle('nav-active', b.dataset.view === id));
-            if (id === 'progress-view') setTimeout(updateChart, 50);
-        }
+        document.getElementById('total').textContent = state.history.length;
         
-        function updateViews() {
-            $('total').textContent = state.history.length;
-            if (state.history.length > 0) {
-                const latest = state.history[0];
-                $('latest-reading').innerHTML = `<p class="text-5xl font-bold text-cyan-600">${latest.hb.toFixed(2)} <span class="text-3xl text-gray-500">g/dL</span></p>`;
-                const week = state.history.filter(r => new Date(r.time) > new Date(Date.now() - 7*24*60*60*1000));
-                if (week.length) {
-                    const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
-                    $('avg-7').textContent = avg.toFixed(2);
-                }
-            } else {
-                const t = translations[state.lang];
-                $('latest-reading').innerHTML = `<p class="text-gray-500">${t.noReadingsYet}</p>`;
+        if (state.history.length > 0) {
+            const latest = state.history[0];
+            const color = latest.hb < 10 ? 'text-red-500' : latest.hb < 12 ? 'text-yellow-500' : 'text-green-500';
+            document.getElementById('latestReading').innerHTML = 
+                `<p class="text-5xl font-bold ${color}">${latest.hb.toFixed(2)} <span class="text-3xl text-gray-500">g/dL</span></p>`;
+            
+            const week = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+            if (week.length) {
+                const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
+                document.getElementById('avg').textContent = avg.toFixed(2);
             }
             
-            const histDiv = $('history-cards');
-            histDiv.innerHTML = state.history.length === 0 ? '<div class="glass-card p-6 rounded-3xl text-center text-gray-500">No history</div>' :
-                state.history.map(r => `
-                    <div class="glass-card p-4 rounded-3xl shadow-md flex items-center gap-4">
-                        <img src="data:image/jpeg;base64,${r.crop}" class="w-24 h-20 object-cover rounded-xl">
-                        <div class="flex-1">
-                            <p class="font-semibold">${new Date(r.time).toLocaleDateString()}</p>
-                            <p class="text-2xl font-bold text-cyan-600">${r.hb.toFixed(2)} g/dL</p>
-                        </div>
+            document.getElementById('historyCards').innerHTML = state.history.map(r =>
+                `<div class="glass-card p-4 mb-4 flex items-center gap-4">
+                    <img src="data:image/jpeg;base64,${r.crop}" class="w-24 h-20 object-cover rounded-xl border-2">
+                    <div class="flex-1">
+                        <p class="font-semibold">${new Date(r.time).toLocaleDateString()}</p>
+                        <p class="text-xs text-gray-500">${new Date(r.time).toLocaleTimeString()}</p>
+                        <p class="text-2xl font-bold text-cyan-600 mt-1">${r.hb.toFixed(2)} g/dL</p>
                     </div>
-                `).join('');
+                </div>`
+            ).join('');
+            
+            const insightText = state.history.length < 3 ? 
+                'Take at least 3 readings to generate insights.' :
+                `Your Hb trend is ${state.history[0].hb > state.history[state.history.length-1].hb ? 'improving! 📈' : 'stable ➡️'}`;
+            document.getElementById('insights').innerHTML = `<p>${insightText}</p>`;
         }
-        
-        function updateChart() {
-            if (state.history.length === 0) return;
-            const ctx = $('chart').getContext('2d');
-            const labels = state.history.map(r => new Date(r.time).toLocaleDateString()).reverse();
-            const data = state.history.map(r => r.hb).reverse();
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{label: 'Hb (g/dL)', data, borderColor: '#0891b2', backgroundColor: 'rgba(8, 145, 178, 0.1)', tension: 0.4}]
-                },
-                options: {responsive: true, maintainAspectRatio: true}
+    }
+    
+    function updateChart() {
+        if (state.history.length === 0) return;
+        const ctx = document.getElementById('chart').getContext('2d');
+        const labels = state.history.map(r => new Date(r.time).toLocaleDateString()).reverse();
+        const data = state.history.map(r => r.hb).reverse();
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Hb (g/dL)',
+                    data,
+                    borderColor: '#0891b2',
+                    backgroundColor: 'rgba(8, 145, 178, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {responsive: true, maintainAspectRatio: true}
+        });
+    }
+    
+    function handleFile(file) {
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        document.getElementById('cropImg').src = url;
+        document.getElementById('cameraModal').classList.add('hidden');
+        document.getElementById('cropModal').classList.remove('hidden');
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(document.getElementById('cropImg'), {
+            aspectRatio: 16/9,
+            viewMode: 1,
+            dragMode: 'move',
+            background: false,
+            autoCropArea: 0.8
+        });
+    }
+    
+    async function analyze(b64) {
+        document.getElementById('loadingModal').classList.remove('hidden');
+        try {
+            const res = await fetch(API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({image_b64: b64})
             });
-        }
-        
-        function handleFile(file) {
-            if (!file) return;
-            const url = URL.createObjectURL(file);
-            $('image-to-crop').src = url;
-            $('camera-modal').classList.add('hidden');
-            $('crop-modal').classList.remove('hidden');
-            if (cropper) cropper.destroy();
-            cropper = new Cropper($('image-to-crop'), {
-                aspectRatio: 16/9, viewMode: 1, dragMode: 'move', background: false, autoCropArea: 0.8
+            if (!res.ok) throw new Error('Analysis failed');
+            const data = await res.json();
+            state.history.unshift({
+                hb: data.hb_value,
+                crop: data.crop_b64,
+                time: Date.now()
             });
+            localStorage.setItem('history', JSON.stringify(state.history));
+            updateViews();
+            showView('dashboardView');
+        } catch(e) {
+            document.getElementById('errorMsg').textContent = e.message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        } finally {
+            document.getElementById('loadingModal').classList.add('hidden');
         }
-        
-        async function analyze(b64) {
-            $('loading-modal').classList.remove('hidden');
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({image_b64: b64})
-                });
-                if (!res.ok) throw new Error('Analysis failed');
-                const data = await res.json();
-                state.history.unshift({hb: data.hb_value, crop: data.crop_b64, time: new Date().toISOString()});
-                localStorage.setItem('history', JSON.stringify(state.history));
-                updateViews();
-                showView('dashboard-view');
-            } catch (err) {
-                $('error-msg').textContent = err.message;
-                $('error-modal').classList.remove('hidden');
-            } finally {
-                $('loading-modal').classList.add('hidden');
-            }
-        }
-        
-        function init() {
-            const saved = localStorage.getItem('history');
-            if (saved) state.history = JSON.parse(saved);
-            
-            const savedLang = localStorage.getItem('lang') || 'en';
-            setLang(savedLang);
-            
-            $('lang-btn').onclick = () => setLang(state.lang === 'en' ? 'ar' : 'en');
-            
-            $('.nav-button').forEach(btn => {
-                btn.onclick = () => showView(btn.dataset.view);
-            });
-            
-            $('camera-btn').onclick = () => $('camera-modal').classList.remove('hidden');
-            $('close-modal').onclick = () => $('camera-modal').classList.add('hidden');
-            
-            $('camera-input').onchange = (e) => handleFile(e.target.files[0]);
-            $('upload-input').onchange = (e) => handleFile(e.target.files[0]);
-            
-            $('back-crop').onclick = () => {
-                $('crop-modal').classList.add('hidden');
-                $('camera-modal').classList.remove('hidden');
-                if (cropper) cropper.destroy();
-            };
-            
-            $('confirm-crop').onclick = () => {
-                if (!cropper) return;
-                const canvas = cropper.getCroppedCanvas({width: 800});
-                const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
-                $('crop-modal').classList.add('hidden');
-                if (cropper) cropper.destroy();
-                analyze(b64);
-            };
-            
-            $('close-error').onclick = () => $('error-modal').classList.add('hidden');
-            
-            $('articles').onclick = (e) => {
-                const card = e.target.closest('.article-card');
-                if (!card) return;
-                const article = translations[state.lang].articles.find(a => a.id === card.dataset.id);
-                if (!article) return;
-                $('article-title').textContent = article.title;
-                $('article-img').src = article.img;
-                $('article-content').innerHTML = article.content;
-                showView('article-view');
-            };
-            
-            $('back-btn').onclick = () => showView('dashboard-view');
-        }
-        
-        document.addEventListener('DOMContentLoaded', init);
-    })();
+    }
+    
+    // Event Listeners
+    document.getElementById('langBtn').addEventListener('click', function() {
+        setLang(state.lang === 'en' ? 'ar' : 'en');
+    });
+    
+    document.querySelectorAll('.navBtn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            showView(btn.dataset.view);
+        });
+    });
+    
+    document.getElementById('cameraBtn').addEventListener('click', function() {
+        document.getElementById('cameraModal').classList.remove('hidden');
+    });
+    
+    document.getElementById('closeModal').addEventListener('click', function() {
+        document.getElementById('cameraModal').classList.add('hidden');
+    });
+    
+    document.getElementById('cameraInput').addEventListener('change', function(e) {
+        handleFile(e.target.files[0]);
+    });
+    
+    document.getElementById('uploadInput').addEventListener('change', function(e) {
+        handleFile(e.target.files[0]);
+    });
+    
+    document.getElementById('backCrop').addEventListener('click', function() {
+        document.getElementById('cropModal').classList.add('hidden');
+        document.getElementById('cameraModal').classList.remove('hidden');
+        if (cropper) cropper.destroy();
+    });
+    
+    document.getElementById('confirmCrop').addEventListener('click', function() {
+        if (!cropper) return;
+        const canvas = cropper.getCroppedCanvas({width: 800});
+        const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
+        document.getElementById('cropModal').classList.add('hidden');
+        if (cropper) cropper.destroy();
+        analyze(b64);
+    });
+    
+    document.getElementById('closeError').addEventListener('click', function() {
+        document.getElementById('errorModal').classList.add('hidden');
+    });
+    
+    document.getElementById('articles').addEventListener('click', function(e) {
+        const card = e.target.closest('.articleCard');
+        if (!card) return;
+        const article = translations[state.lang].articles.find(function(a) {
+            return a.id === card.dataset.id;
+        });
+        if (!article) return;
+        document.getElementById('articleTitle').textContent = article.title;
+        document.getElementById('articleImg').src = article.img;
+        document.getElementById('articleContent').innerHTML = article.content;
+        showView('articleView');
+    });
+    
+    document.getElementById('backBtn').addEventListener('click', function() {
+        showView('dashboardView');
+    });
+    
+    // Initialize
+    setLang(localStorage.getItem('lang') || 'en');
+    updateViews();
     </script>
 </body>
 </html>
