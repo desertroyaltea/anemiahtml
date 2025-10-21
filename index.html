@@ -507,7 +507,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- CONFIG ---
-        const BACKEND_API_URL = "https://myanemia-backend.onrender.com/api/analyze"; // UPDATE THIS
+        const BACKEND_API_URL = "https://your-render-url.onrender.com/api/analyze"; // UPDATE THIS
         
         // --- TRANSLATIONS ---
         const translations = {
@@ -734,6 +734,12 @@
         const renderArticleGallery = () => {
             const lang = appState.language;
             const articles = translations[lang].articles;
+            
+            if (!articles || articles.length === 0) {
+                console.error('No articles found for language:', lang);
+                return;
+            }
+            
             articleGallery.innerHTML = articles.map(article => {
                 const isBookmarked = appState.bookmarks.includes(article.id);
                 return `
@@ -746,12 +752,19 @@
                     <p class="p-4 font-semibold text-sm text-gray-800 leading-snug">${article.title}</p>
                 </div>`;
             }).join('');
+            
+            console.log('Rendered', articles.length, 'articles for language:', lang);
         };
         
         const showArticle = (articleId) => {
             const lang = appState.language;
             const article = translations[lang].articles.find(a => a.id === articleId);
-            if (!article) return;
+            if (!article) {
+                console.error('Article not found:', articleId);
+                return;
+            }
+            
+            console.log('Showing article:', article.title);
             
             document.getElementById('article-title').textContent = article.title;
             document.getElementById('article-image').src = article.imageUrl;
@@ -1416,13 +1429,21 @@
         };
         
         // --- EVENT LISTENERS ---
-        langSwitcherBtn.addEventListener('click', toggleLanguage);
-        navButtons.forEach(button => button.addEventListener('click', () => {
-            showView(button.dataset.view);
-            vibrate(10);
-        }));
+        langSwitcherBtn.addEventListener('click', () => {
+            console.log('Language switcher clicked');
+            toggleLanguage();
+        });
+        
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                console.log('Nav button clicked:', button.dataset.view);
+                showView(button.dataset.view);
+                vibrate(10);
+            });
+        });
         
         cameraButton.addEventListener('click', () => {
+            console.log('Camera button clicked');
             cameraModal.classList.remove('hidden');
             vibrate(20);
         });
@@ -1455,12 +1476,14 @@
         articleGallery.addEventListener('click', (event) => {
             const card = event.target.closest('.article-card');
             if (card && card.dataset.articleId) {
+                console.log('Article card clicked:', card.dataset.articleId);
                 showArticle(card.dataset.articleId);
                 vibrate(10);
             }
         });
         
         backToDashboardBtn.addEventListener('click', () => {
+            console.log('Back to dashboard clicked');
             showView('dashboard-view');
             vibrate(10);
         });
