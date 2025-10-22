@@ -175,6 +175,22 @@
         </div>
     </div>
 
+    <div id="yoloFailModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6 text-center">
+            <div class="text-6xl mb-4">👁️</div>
+            <h2 id="yoloFailTitle" class="text-xl font-bold mb-2">Can't Find Conjunctiva</h2>
+            <p id="yoloFailMsg" class="text-gray-600 mb-4">The AI couldn't detect your lower eyelid automatically. Please crop the image manually.</p>
+            <div class="flex gap-4">
+                <button id="retakePhoto" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold">
+                    <span id="retakeBtn">Retake Photo</span>
+                </button>
+                <button id="manualCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold">
+                    <span id="cropManuallyBtn">Crop Manually</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="errorModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6 text-center">
             <div class="text-6xl mb-4">😔</div>
@@ -200,6 +216,10 @@
             modalTitle: 'New Reading', useCamera: 'Use Camera', upload: 'Upload', cancel: 'Cancel',
             adjustTitle: 'Adjust Image', adjustInfo: 'Focus on the lower eyelid', back: 'Back', confirm: 'Confirm',
             analyzing: 'Analyzing...', errorTitle: 'Oops!', closeBtn: 'Close',
+            yoloFailTitle: "Can't Find Conjunctiva",
+            yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
+            retakeBtn: "Retake Photo",
+            cropManuallyBtn: "Crop Manually",
             articles: [
                 {id:'a1', img:'anemia-explained.png', title:'Understanding Anemia', time:'3 min',
                  content:'<h3 class="text-lg font-bold mb-3">Red Blood Cells</h3><p class="mb-3">Anemia is when your blood lacks healthy red blood cells or hemoglobin.</p><p>When you have anemia, your body doesn\'t get enough oxygen-rich blood, leading to fatigue and weakness.</p>'},
@@ -219,6 +239,10 @@
             modalTitle: 'قراءة جديدة', useCamera: 'استخدام الكاميرا', upload: 'رفع صورة', cancel: 'إلغاء',
             adjustTitle: 'تعديل الصورة', adjustInfo: 'ركز على الجفن السفلي', back: 'رجوع', confirm: 'تأكيد',
             analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', closeBtn: 'إغلاق',
+            yoloFailTitle: "لا يمكن العثور على الملتحمة",
+            yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
+            retakeBtn: "إعادة التقاط الصورة",
+            cropManuallyBtn: "قص يدوياً",
             articles: [
                 {id:'a1', img:'anemia-explained.png', title:'فهم فقر الدم', time:'3 دقائق',
                  content:'<h3 class="text-lg font-bold mb-3 text-right">خلايا الدم الحمراء</h3><p class="mb-3 text-right">فقر الدم هو نقص في خلايا الدم الحمراء أو الهيموجلوبين.</p><p class="text-right">عندما تكون مصاباً بفقر الدم، لا يحصل جسمك على كمية كافية من الدم الغني بالأكسجين.</p>'},
@@ -233,6 +257,7 @@
     let state = {history:[], lang:'en'};
     let cropper = null;
     let chart = null;
+    let currentFullImage = null; // Store the full image globally
     
     function setLang(lang) {
         state.lang = lang;
@@ -332,15 +357,17 @@
         });
     }
 
-    // --- ADD THIS ENTIRE FUNCTION ---
-    async function analyze(b64) {
+    async function analyze(b64, isManualCrop = false) {
         document.getElementById('loadingModal').classList.remove('hidden');
         
         try {
             const response = await fetch(API, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image_b64: b64 })
+                body: JSON.stringify({ 
+                    image_b64: b64,
+                    manual_crop: isManualCrop
+                })
             });
 
             if (!response.ok) {
@@ -350,15 +377,28 @@
 
             const data = await response.json();
             
-            // Create new reading and add it to the start of the history
+            // Check if YOLO failed and this wasn't already a manual crop
+            if (data.detection_method === 'fallback' && !isManualCrop) {
+                document.getElementById('loadingModal').classList.add('hidden');
+                
+                // Store the full image for manual cropping
+                currentFullImage = b64;
+                
+                // Show YOLO failure modal
+                document.getElementById('yoloFailModal').classList.remove('hidden');
+                return; // Don't save the result yet
+            }
+            
+            // Success! Create new reading
             const newReading = {
                 hb: data.hb_value,
+                is_anemic: data.is_anemic,
                 crop: data.crop_b64,
-                time: Date.now()
+                time: Date.now(),
+                method: data.detection_method
             };
             state.history.unshift(newReading);
             
-            // Save and update
             localStorage.setItem('history', JSON.stringify(state.history));
             updateViews();
             showView('dashboardView');
@@ -372,46 +412,22 @@
         }
     }
     
-function handleFile(file) {
+    function handleFile(file) {
         if (!file) return;
         
-        const cropImg = document.getElementById('cropImg');
-        const url = URL.createObjectURL(file);
-        
-        // Destroy any old cropper instance first
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-
-        // Set the new image source
-        cropImg.src = url;
-
-        // --- THIS IS THE FIX ---
-        // We MUST wait for the image to finish loading *before* // initializing the cropper on it.
-        cropImg.onload = () => {
-            // Now the image is loaded, show the modal
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const b64 = e.target.result.split(',')[1];
+            
+            // Close camera modal and try YOLO first with FULL image
             document.getElementById('cameraModal').classList.add('hidden');
-            document.getElementById('cropModal').classList.remove('hidden');
-
-            // Initialize cropper on the *loaded* image
-            cropper = new Cropper(cropImg, {
-                // aspectRatio: 16/9, // REMOVED: This was forcing a bad shape
-                viewMode: 1,
-                dragMode: 'move',
-                background: false,
-                autoCropArea: 0.8
-            });
+            
+            // Analyze the FULL image - let YOLO detect
+            analyze(b64, false);
         };
-        
-        // Handle cases where the image fails to load
-        cropImg.onerror = () => {
-            document.getElementById('errorMsg').textContent = "Failed to load image. Please try again.";
-            document.getElementById('errorModal').classList.remove('hidden');
-            document.getElementById('cameraModal').classList.remove('hidden');
-            document.getElementById('cropModal').classList.add('hidden');
-        };
-    }    
+        reader.readAsDataURL(file);
+    }
+    
     // Event Listeners
     document.getElementById('langBtn').addEventListener('click', function() {
         setLang(state.lang === 'en' ? 'ar' : 'en');
@@ -439,19 +455,60 @@ function handleFile(file) {
         handleFile(e.target.files[0]);
     });
     
+    // NEW: Handle manual crop button from YOLO fail modal
+    document.getElementById('manualCrop').addEventListener('click', function() {
+        document.getElementById('yoloFailModal').classList.add('hidden');
+        
+        // Show crop interface with the full image
+        const cropImg = document.getElementById('cropImg');
+        cropImg.src = 'data:image/jpeg;base64,' + currentFullImage;
+        
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        
+        cropImg.onload = () => {
+            document.getElementById('cropModal').classList.remove('hidden');
+            
+            cropper = new Cropper(cropImg, {
+                viewMode: 1,
+                dragMode: 'move',
+                background: false,
+                autoCropArea: 0.8,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxResizable: true,
+                cropBoxMovable: true,
+                toggleDragModeOnDblclick: false
+            });
+        };
+    });
+    
+    // NEW: Handle retake photo button
+    document.getElementById('retakePhoto').addEventListener('click', function() {
+        document.getElementById('yoloFailModal').classList.add('hidden');
+        document.getElementById('cameraModal').classList.remove('hidden');
+        currentFullImage = null;
+    });
+    
     document.getElementById('backCrop').addEventListener('click', function() {
         document.getElementById('cropModal').classList.add('hidden');
         document.getElementById('cameraModal').classList.remove('hidden');
         if (cropper) cropper.destroy();
     });
     
+    // UPDATED: confirmCrop - mark as manual crop
     document.getElementById('confirmCrop').addEventListener('click', function() {
         if (!cropper) return;
         const canvas = cropper.getCroppedCanvas({width: 800});
         const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
         document.getElementById('cropModal').classList.add('hidden');
         if (cropper) cropper.destroy();
-        analyze(b64);
+        
+        // This is a manual crop, tell the backend
+        analyze(b64, true);
     });
     
     document.getElementById('closeError').addEventListener('click', function() {
