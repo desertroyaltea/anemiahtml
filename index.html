@@ -14,10 +14,11 @@
         [lang="ar"] body { font-family: 'Tajawal', sans-serif; }
         body { background: #f8fafc; }
         .glass-card { 
-            background: rgba(255,255,255,0.85); 
-            backdrop-filter: blur(10px);
-            border-radius: 24px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(10px) saturate(180%);
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 8px 32px rgba(31,38,135,0.15), 0 0 0 1px rgba(255,255,255,0.1) inset;
         }
         .nav-active svg, .nav-active p { color: #0891b2; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -36,11 +37,26 @@
             0%, 100% { transform: rotate(-45deg) translateY(0); }
             50% { transform: rotate(-45deg) translateY(10px); }
         }
+        .btn-press:active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(31,38,135,0.25);
+        }
+        .swipe-item {
+            position: relative;
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="text-gray-800">
     <div class="fixed top-4 right-4 z-50">
-        <button id="langBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold">ع</button>
+        <button id="langBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold btn-press">ع</button>
     </div>
 
     <main class="max-w-xl mx-auto p-4 pb-32">
@@ -55,38 +71,86 @@
             <h1 id="title" class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
             <p id="subtitle" class="text-gray-600 mb-6">Your health summary</p>
             
-            <div class="glass-card p-6 mb-6">
+            <div class="glass-card p-6 mb-6 card-hover">
                 <h2 id="latestReadingTitle" class="font-semibold text-gray-700 mb-2">Latest Reading</h2>
                 <div id="latestReading" class="text-center py-4">
                     <p id="noReadings" class="text-gray-500">No readings yet. Tap camera to start!</p>
                 </div>
+                <div id="comparisonView" class="mt-4 pt-4 border-t border-gray-200 hidden">
+                    <p class="text-sm text-gray-600 mb-2">Compared to last week:</p>
+                    <div id="comparisonContent" class="flex items-center justify-center gap-2"></div>
+                </div>
             </div>
             
             <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="glass-card p-4 text-center">
+                <div class="glass-card p-4 text-center card-hover">
                     <p id="avg7Label" class="text-sm text-gray-600">Average (7 days)</p>
                     <p id="avg" class="text-2xl font-bold text-cyan-600 mt-2">-</p>
                 </div>
-                <div class="glass-card p-4 text-center">
+                <div class="glass-card p-4 text-center card-hover">
                     <p id="totalLabel" class="text-sm text-gray-600">Total Readings</p>
                     <p id="total" class="text-2xl font-bold text-cyan-600 mt-2">0</p>
                 </div>
             </div>
             
+            <div id="goalSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-semibold text-gray-700">Your Goal</h2>
+                    <button id="editGoalBtn" class="text-cyan-600 text-sm font-semibold btn-press">Edit</button>
+                </div>
+                <div id="goalDisplay">
+                    <p class="text-sm text-gray-600 mb-2">Target Hb: <span id="goalValue" class="font-bold">12.0</span> g/dL</p>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div id="goalProgress" class="bg-gradient-to-r from-cyan-500 to-green-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <p id="goalStatus" class="text-xs text-gray-500"></p>
+                </div>
+            </div>
+            
+            <div id="recommendationsSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 class="font-semibold text-gray-700 text-lg mb-3">📋 Smart Recommendations</h2>
+                <div id="recommendationsContent" class="space-y-2"></div>
+            </div>
+            
+            <div id="predictionsSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 class="font-semibold text-gray-700 text-lg mb-3">🔮 Trend Prediction</h2>
+                <p id="predictionText" class="text-gray-600"></p>
+            </div>
+            
+            <div id="healthScoreSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 class="font-semibold text-gray-700 text-lg mb-3">⭐ Health Score</h2>
+                <div class="text-center">
+                    <p id="healthScore" class="text-5xl font-bold text-cyan-600">0</p>
+                    <p class="text-gray-500 mt-1">out of 100</p>
+                    <p id="healthScoreDesc" class="text-sm text-gray-600 mt-2"></p>
+                </div>
+            </div>
+            
+            <div id="badgesSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 class="font-semibold text-gray-700 text-lg mb-3">🏆 Achievements</h2>
+                <div id="badgesContent" class="flex flex-wrap gap-3"></div>
+            </div>
+            
             <h2 id="educationTitle" class="text-xl font-bold text-gray-800 mb-4">Anemia Education</h2>
             <div id="articles" class="flex overflow-x-auto gap-4 no-scrollbar -mx-4 px-4"></div>
+            
+            <div id="photoGallerySection" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">📸 Photo Timeline</h2>
+                <div id="photoGallery" class="grid grid-cols-3 gap-3"></div>
+            </div>
         </div>
 
         <div id="historyView" class="hidden">
-            <h1 id="historyTitle" class="text-3xl font-bold text-gray-800 mb-6">History</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 id="historyTitle" class="text-3xl font-bold text-gray-800">History</h1>
+                <button id="exportBtn" class="glass-card px-4 py-2 rounded-full font-semibold text-cyan-600 btn-press">📤 Export</button>
+            </div>
             <div id="historyCards"></div>
         </div>
 
         <div id="progressView" class="hidden">
             <h1 id="progressTitle" class="text-3xl font-bold text-gray-800 mb-6">Progress</h1>
-            <div class="glass-card p-6">
-                <canvas id="chart"></canvas>
-            </div>
+            <div class="glass-card p-6"><canvas id="chart"></canvas></div>
         </div>
 
         <div id="insightsView" class="hidden">
@@ -95,7 +159,7 @@
         </div>
 
         <div id="articleView" class="hidden">
-            <button id="backBtn" class="glass-card p-3 mb-4 text-cyan-600">
+            <button id="backBtn" class="glass-card p-3 mb-4 text-cyan-600 btn-press">
                 <svg class="w-6 h-6 ltr-icon inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 <svg class="w-6 h-6 rtl-icon inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
@@ -107,22 +171,22 @@
 
     <footer class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white/90 backdrop-blur-lg border-t">
         <nav class="flex justify-around items-center h-20">
-            <button class="navBtn nav-active text-gray-500 text-center" data-view="dashboardView">
+            <button class="navBtn nav-active text-gray-500 text-center btn-press" data-view="dashboardView">
                 <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h2v2H4V6zm6 0h2v2h-2V6zm6 0h2v2h-2V6zM4 12h2v2H4v-2zm6 0h2v2h-2v-2zm6 0h2v2h-2v-2zM4 18h2v2H4v-2zm6 0h2v2h-2v-2zm6 0h2v2h-2v-2z"/></svg>
                 <p id="navDashboard" class="text-xs mt-1">Dashboard</p>
             </button>
-            <button class="navBtn text-gray-500 text-center" data-view="historyView">
+            <button class="navBtn text-gray-500 text-center btn-press" data-view="historyView">
                 <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <p id="navHistory" class="text-xs mt-1">History</p>
             </button>
-            <button id="cameraBtn" class="bg-gradient-to-br from-cyan-500 to-cyan-700 text-white rounded-full w-16 h-16 flex items-center justify-center -mt-8 shadow-xl">
+            <button id="cameraBtn" class="bg-gradient-to-br from-cyan-500 to-cyan-700 text-white rounded-full w-16 h-16 flex items-center justify-center -mt-8 shadow-xl btn-press">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
-            <button class="navBtn text-gray-500 text-center" data-view="progressView">
+            <button class="navBtn text-gray-500 text-center btn-press" data-view="progressView">
                 <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                 <p id="navProgress" class="text-xs mt-1">Progress</p>
             </button>
-            <button class="navBtn text-gray-500 text-center" data-view="insightsView">
+            <button class="navBtn text-gray-500 text-center btn-press" data-view="insightsView">
                 <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9.7 17h4.7M12 3v1m6.4 1.6l-.7.7M21 12h-1M4 12H3m3.3-5.7l-.7-.7m2.8 9.9a5 5 0 117 0l-.5.5A3.4 3.4 0 0014 18.5V19a2 2 0 11-4 0v-.5c0-.9-.4-1.8-1-2.4l-.5-.5z"/></svg>
                 <p id="navInsights" class="text-xs mt-1">Insights</p>
             </button>
@@ -133,18 +197,18 @@
         <div class="glass-card w-full max-w-md p-6">
             <h2 id="modalTitle" class="text-xl font-bold mb-4">New Reading</h2>
             <div class="flex gap-4">
-                <label class="flex-1 cursor-pointer bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-2xl border-2 border-dashed border-cyan-300 text-center">
+                <label class="flex-1 cursor-pointer bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-2xl border-2 border-dashed border-cyan-300 text-center btn-press">
                     <svg class="h-8 w-8 mx-auto text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     <span id="useCamera" class="mt-2 block font-semibold">Use Camera</span>
                     <input type="file" accept="image/*" capture="environment" id="cameraInput" class="hidden">
                 </label>
-                <label class="flex-1 cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-2xl border-2 border-dashed border-purple-300 text-center">
+                <label class="flex-1 cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-2xl border-2 border-dashed border-purple-300 text-center btn-press">
                     <svg class="h-8 w-8 mx-auto text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span id="upload" class="mt-2 block font-semibold">Upload</span>
                     <input type="file" accept="image/*" id="uploadInput" class="hidden">
                 </label>
             </div>
-            <button id="closeModal" class="mt-4 w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold">
+            <button id="closeModal" class="mt-4 w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">
                 <span id="cancel">Cancel</span>
             </button>
         </div>
@@ -158,10 +222,10 @@
                 <img id="cropImg" src="">
             </div>
             <div class="flex gap-4">
-                <button id="backCrop" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold">
+                <button id="backCrop" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">
                     <span id="back">Back</span>
                 </button>
-                <button id="confirmCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold">
+                <button id="confirmCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press">
                     <span id="confirm">Confirm</span>
                 </button>
             </div>
@@ -181,10 +245,10 @@
             <h2 id="yoloFailTitle" class="text-xl font-bold mb-2">Can't Find Conjunctiva</h2>
             <p id="yoloFailMsg" class="text-gray-600 mb-4">The AI couldn't detect your lower eyelid automatically. Please crop the image manually.</p>
             <div class="flex gap-4">
-                <button id="retakePhoto" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold">
+                <button id="retakePhoto" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">
                     <span id="retakeBtn">Retake Photo</span>
                 </button>
-                <button id="manualCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold">
+                <button id="manualCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press">
                     <span id="cropManuallyBtn">Crop Manually</span>
                 </button>
             </div>
@@ -196,11 +260,37 @@
             <div class="text-6xl mb-4">😔</div>
             <h2 id="errorTitle" class="text-xl font-bold">Oops!</h2>
             <p id="errorMsg" class="text-gray-600 mt-2">Something went wrong</p>
-            <button id="closeError" class="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-semibold">
+            <button id="closeError" class="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-semibold btn-press">
                 <span id="closeBtn">Close</span>
             </button>
         </div>
     </div>
+    
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6 text-center">
+            <div class="text-6xl mb-4">🗑️</div>
+            <h2 class="text-xl font-bold">Delete Reading?</h2>
+            <p class="text-gray-600 mt-2">This action cannot be undone</p>
+            <div class="flex gap-4 mt-6">
+                <button id="cancelDelete" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">Cancel</button>
+                <button id="confirmDelete" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold btn-press">Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="goalModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Set Your Goal</h2>
+            <p class="text-sm text-gray-600 mb-4">Target Hemoglobin Level (g/dL)</p>
+            <input type="number" id="goalInput" step="0.1" min="8" max="18" value="12" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none mb-4">
+            <div class="flex gap-4">
+                <button id="cancelGoal" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">Cancel</button>
+                <button id="saveGoal" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press">Save Goal</button>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50" style="display:none;"></canvas>
 
     <script>
     const API = "https://alna7el-Anemia-Pen-Backend.hf.space/api/analyze";
@@ -216,10 +306,8 @@
             modalTitle: 'New Reading', useCamera: 'Use Camera', upload: 'Upload', cancel: 'Cancel',
             adjustTitle: 'Adjust Image', adjustInfo: 'Focus on the lower eyelid', back: 'Back', confirm: 'Confirm',
             analyzing: 'Analyzing...', errorTitle: 'Oops!', closeBtn: 'Close',
-            yoloFailTitle: "Can't Find Conjunctiva",
-            yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
-            retakeBtn: "Retake Photo",
-            cropManuallyBtn: "Crop Manually",
+            yoloFailTitle: "Can't Find Conjunctiva", yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
+            retakeBtn: "Retake Photo", cropManuallyBtn: "Crop Manually",
             articles: [
                 {id:'a1', img:'anemia-explained.png', title:'Understanding Anemia', time:'3 min',
                  content:'<h3 class="text-lg font-bold mb-3">Red Blood Cells</h3><p class="mb-3">Anemia is when your blood lacks healthy red blood cells or hemoglobin.</p><p>When you have anemia, your body doesn\'t get enough oxygen-rich blood, leading to fatigue and weakness.</p>'},
@@ -239,11 +327,9 @@
             modalTitle: 'قراءة جديدة', useCamera: 'استخدام الكاميرا', upload: 'رفع صورة', cancel: 'إلغاء',
             adjustTitle: 'تعديل الصورة', adjustInfo: 'ركز على الجفن السفلي', back: 'رجوع', confirm: 'تأكيد',
             analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', closeBtn: 'إغلاق',
-            yoloFailTitle: "لا يمكن العثور على الملتحمة",
-            yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
-            retakeBtn: "إعادة التقاط الصورة",
-            cropManuallyBtn: "قص يدوياً",
-            articles: [
+            yoloFailTitle: "لا يمكن العثور على الملتحمة", yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
+            retakeBtn: "إعادة التقاط الصورة", cropManuallyBtn: "قص يدوياً",
+articles: [
                 {id:'a1', img:'anemia-explained.png', title:'فهم فقر الدم', time:'3 دقائق',
                  content:'<h3 class="text-lg font-bold mb-3 text-right">خلايا الدم الحمراء</h3><p class="mb-3 text-right">فقر الدم هو نقص في خلايا الدم الحمراء أو الهيموجلوبين.</p><p class="text-right">عندما تكون مصاباً بفقر الدم، لا يحصل جسمك على كمية كافية من الدم الغني بالأكسجين.</p>'},
                 {id:'a2', img:'anemia-types.png', title:'أنواع فقر الدم', time:'4 دقائق',
@@ -254,23 +340,93 @@
         }
     };
     
-    let state = {history:[], lang:'en'};
+    let state = {history: [], lang: 'en', goal: 12.0, bookmarkedArticles: [], readArticles: [], deleteIndex: null};
     let cropper = null;
     let chart = null;
-    let currentFullImage = null; // Store the full image globally
+    let currentFullImage = null;
+    
+    function haptic(type = 'light') {
+        if ('vibrate' in navigator) {
+            const patterns = {light: [10], medium: [20], heavy: [50], success: [10, 50, 10], error: [100, 50, 100]};
+            navigator.vibrate(patterns[type] || patterns.light);
+        }
+    }
+    
+    function celebrateSuccess() {
+        haptic('success');
+        const canvas = document.getElementById('confettiCanvas');
+        canvas.style.display = 'block';
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const colors = ['#dc2626', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6'];
+        const confettiPieces = [];
+        for (let i = 0; i < 50; i++) {
+            confettiPieces.push({x: Math.random() * canvas.width, y: -10, width: Math.random() * 8 + 5, height: Math.random() * 8 + 5, color: colors[Math.floor(Math.random() * colors.length)], speedY: Math.random() * 3 + 2, speedX: Math.random() * 4 - 2, rotation: Math.random() * 360});
+        }
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let allOffScreen = true;
+            confettiPieces.forEach(piece => {
+                piece.y += piece.speedY;
+                piece.x += piece.speedX;
+                piece.rotation += 5;
+                if (piece.y < canvas.height) allOffScreen = false;
+                ctx.save();
+                ctx.translate(piece.x, piece.y);
+                ctx.rotate(piece.rotation * Math.PI / 180);
+                ctx.fillStyle = piece.color;
+                ctx.fillRect(-piece.width/2, -piece.height/2, piece.width, piece.height);
+                ctx.restore();
+            });
+            if (!allOffScreen) requestAnimationFrame(animate);
+            else canvas.style.display = 'none';
+        }
+        animate();
+    }
+    
+    let pullStartY = 0, isPulling = false;
+    document.addEventListener('touchstart', function(e) {
+        if (window.scrollY === 0 && !document.getElementById('dashboardView').classList.contains('hidden')) pullStartY = e.touches[0].clientY;
+    });
+    document.addEventListener('touchmove', function(e) {
+        if (pullStartY > 0 && window.scrollY === 0) {
+            const pullDistance = e.touches[0].clientY - pullStartY;
+            if (pullDistance > 100 && !isPulling) { isPulling = true; haptic('medium'); }
+        }
+    });
+    document.addEventListener('touchend', function(e) {
+        if (isPulling) { isPulling = false; updateViews(); haptic('light'); }
+        pullStartY = 0;
+    });
+    
+    function setupSwipeHandlers() {
+        document.querySelectorAll('.history-card').forEach((card, index) => {
+            let startX = 0, currentX = 0;
+            card.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; });
+            card.addEventListener('touchmove', function(e) {
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                if (diff > 0) card.style.transform = `translateX(-${Math.min(diff, 80)}px)`;
+            });
+            card.addEventListener('touchend', function(e) {
+                const diff = startX - currentX;
+                if (diff > 80) { state.deleteIndex = index; document.getElementById('deleteConfirmModal').classList.remove('hidden'); haptic('medium'); }
+                else card.style.transform = 'translateX(0)';
+            });
+        });
+    }
     
     function setLang(lang) {
         state.lang = lang;
         document.documentElement.lang = lang;
         document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
         document.getElementById('langBtn').textContent = lang === 'en' ? 'ع' : 'E';
-        
         const t = translations[lang];
         Object.keys(t).forEach(key => {
             const el = document.getElementById(key);
             if (el && typeof t[key] === 'string') el.textContent = t[key];
         });
-        
         renderArticles();
         updateViews();
         localStorage.setItem('lang', lang);
@@ -278,59 +434,204 @@
     
     function renderArticles() {
         const arts = translations[state.lang].articles;
-        const html = arts.map(a => 
-            `<div class="articleCard min-w-[224px] glass-card overflow-hidden cursor-pointer hover:scale-105 transition" data-id="${a.id}">
+        const html = arts.map(a => {
+            const isBookmarked = state.bookmarkedArticles.includes(a.id);
+            const isRead = state.readArticles.includes(a.id);
+            return `<div class="articleCard min-w-[224px] glass-card overflow-hidden cursor-pointer card-hover" data-id="${a.id}">
                 <div class="relative">
                     <img src="${a.img}" class="w-full h-32 object-cover" onerror="this.src='https://placehold.co/400x200/06b6d4/FFF?text=${encodeURIComponent(a.title)}'">
+                    <div class="absolute top-2 right-2 text-2xl bookmark-icon" data-article="${a.id}">${isBookmarked ? '⭐' : '☆'}</div>
                     <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">⏱️ ${a.time}</div>
+                    ${isRead ? '<div class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">✓ Read</div>' : ''}
                 </div>
                 <p class="p-4 font-semibold text-sm">${a.title}</p>
-            </div>`
-        ).join('');
+            </div>`;
+        }).join('');
         document.getElementById('articles').innerHTML = html;
+        document.querySelectorAll('.bookmark-icon').forEach(icon => {
+            icon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleBookmark(this.dataset.article);
+                haptic('light');
+            });
+        });
+    }
+    
+    function toggleBookmark(articleId) {
+        const index = state.bookmarkedArticles.indexOf(articleId);
+        if (index > -1) state.bookmarkedArticles.splice(index, 1);
+        else state.bookmarkedArticles.push(articleId);
+        localStorage.setItem('bookmarks', JSON.stringify(state.bookmarkedArticles));
+        renderArticles();
     }
     
     function showView(id) {
         document.querySelectorAll('[id$="View"]').forEach(v => v.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
-        document.querySelectorAll('.navBtn').forEach(b => {
-            b.classList.toggle('nav-active', b.dataset.view === id);
-        });
+        document.querySelectorAll('.navBtn').forEach(b => b.classList.toggle('nav-active', b.dataset.view === id));
         if (id === 'progressView') setTimeout(updateChart, 50);
+        haptic('light');
+    }
+    
+    function calculateHealthScore() {
+        if (state.history.length === 0) return 0;
+        let score = 0;
+        const latest = state.history[0];
+        if (latest.hb >= 12) score += 40;
+        else if (latest.hb >= 11) score += 30;
+        else if (latest.hb >= 10) score += 20;
+        else score += 10;
+        const last7Days = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+        score += Math.min(last7Days.length * 5, 30);
+        if (state.history.length >= 3) {
+            const recent = state.history.slice(0, 3);
+            if (recent[0].hb > recent[2].hb) score += 30;
+            else score += 15;
+        }
+        return Math.min(score, 100);
+    }
+    
+    function getHealthScoreDescription(score) {
+        if (score >= 80) return "Excellent! Keep it up! 🌟";
+        if (score >= 60) return "Good progress! 👍";
+        if (score >= 40) return "You're on track! 💪";
+        return "Keep monitoring! 📊";
+    }
+    
+    function calculateBadges() {
+        const badges = [];
+        if (state.history.length >= 1) badges.push({emoji: '🎯', name: 'First Reading', desc: 'Started your journey'});
+        const last7Days = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+        if (last7Days.length >= 7) badges.push({emoji: '⚡', name: 'Week Warrior', desc: '7 readings in 7 days'});
+        if (state.history.length >= 5) {
+            let improving = 0;
+            for (let i = 0; i < state.history.length - 1; i++) {
+                if (state.history[i].hb > state.history[i + 1].hb) improving++;
+            }
+            if (improving >= 3) badges.push({emoji: '📈', name: 'Trend Master', desc: 'Consistent improvement'});
+        }
+        if (state.history.length > 0 && state.history[0].hb >= 12) badges.push({emoji: '🦸', name: 'Health Hero', desc: 'Reached normal range'});
+        if (state.history.length >= 10) badges.push({emoji: '🏆', name: 'Consistent Tracker', desc: '10+ readings'});
+        return badges;
+    }
+    
+    function getSmartRecommendations() {
+        if (state.history.length === 0) return [];
+        const latest = state.history[0];
+        const recommendations = [];
+        if (latest.hb < 10) {
+            recommendations.push({icon: '🥩', text: 'Eat iron-rich foods like red meat and leafy greens'});
+            recommendations.push({icon: '🍊', text: 'Take vitamin C with iron for better absorption'});
+            recommendations.push({icon: '👨‍⚕️', text: 'Consult a doctor about iron supplements'});
+        } else if (latest.hb < 12) {
+            recommendations.push({icon: '🥗', text: 'Continue eating iron-rich foods'});
+            recommendations.push({icon: '💪', text: 'Keep tracking your progress'});
+        } else {
+            recommendations.push({icon: '✅', text: 'Great job! Maintain your healthy habits'});
+            recommendations.push({icon: '📊', text: 'Continue regular monitoring'});
+        }
+        return recommendations;
+    }
+    
+    function getTrendPrediction() {
+        if (state.history.length < 3) return null;
+        const recent = state.history.slice(0, 3).reverse();
+        const avgChange = (recent[2].hb - recent[0].hb) / 2;
+        if (Math.abs(avgChange) < 0.1) return "Your Hb levels are stable. Keep up your current routine! ➡️";
+        if (avgChange > 0) {
+            const weeksToGoal = state.goal > recent[2].hb ? Math.ceil((state.goal - recent[2].hb) / avgChange) : 0;
+            if (weeksToGoal > 0 && weeksToGoal <= 12) return `Great progress! At this rate, you'll reach your goal in about ${weeksToGoal} weeks! 📈`;
+            return "Your Hb is improving! Keep it up! 📈";
+        } else return "Your Hb is declining. Consider consulting a healthcare provider. 📉";
     }
     
     function updateViews() {
         const saved = localStorage.getItem('history');
         if (saved) state.history = JSON.parse(saved);
-        
+        const savedBookmarks = localStorage.getItem('bookmarks');
+        if (savedBookmarks) state.bookmarkedArticles = JSON.parse(savedBookmarks);
+        const savedReadArticles = localStorage.getItem('readArticles');
+        if (savedReadArticles) state.readArticles = JSON.parse(savedReadArticles);
+        const savedGoal = localStorage.getItem('goal');
+        if (savedGoal) state.goal = parseFloat(savedGoal);
         document.getElementById('total').textContent = state.history.length;
-        
+        let streak = 0;
+        if (state.history.length > 0) {
+            const today = new Date().toDateString();
+            const lastReading = new Date(state.history[0].time).toDateString();
+            if (today === lastReading) {
+                streak = 1;
+                for (let i = 1; i < state.history.length; i++) {
+                    const prevDate = new Date(state.history[i-1].time);
+                    const currDate = new Date(state.history[i].time);
+                    const daysDiff = Math.floor((prevDate - currDate) / (1000*60*60*24));
+                    if (daysDiff === 1) streak++;
+                    else break;
+                }
+            }
+        }
+        document.querySelector('#streak span:last-child').textContent = streak;
         if (state.history.length > 0) {
             const latest = state.history[0];
-            const color = latest.hb < 10 ? 'text-red-500' : latest.hb < 12 ? 'text-yellow-500' : 'text-green-500';
-            document.getElementById('latestReading').innerHTML = 
-                `<p class="text-5xl font-bold ${color}">${latest.hb.toFixed(2)} <span class="text-3xl text-gray-500">g/dL</span></p>`;
-            
+            let color = 'text-red-500';
+            if (latest.hb >= 12) color = 'text-green-500';
+            else if (latest.hb >= 10) color = 'text-yellow-500';
+            document.getElementById('latestReading').innerHTML = `<p class="text-5xl font-bold ${color}">${latest.hb.toFixed(2)} <span class="text-3xl text-gray-500">g/dL</span></p>`;
+            const lastWeek = state.history.filter(r => {
+                const weekAgo = Date.now() - 7*24*60*60*1000;
+                const twoWeeksAgo = Date.now() - 14*24*60*60*1000;
+                return r.time < weekAgo && r.time > twoWeeksAgo;
+            });
+            if (lastWeek.length > 0) {
+                const lastWeekAvg = lastWeek.reduce((s, r) => s + r.hb, 0) / lastWeek.length;
+                const diff = latest.hb - lastWeekAvg;
+                const arrow = diff > 0 ? '📈' : diff < 0 ? '📉' : '➡️';
+                const diffColor = diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : 'text-gray-600';
+                document.getElementById('comparisonView').classList.remove('hidden');
+                document.getElementById('comparisonContent').innerHTML = `<span class="text-2xl">${arrow}</span><span class="${diffColor} font-bold">${diff > 0 ? '+' : ''}${diff.toFixed(2)} g/dL</span>`;
+            }
             const week = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
             if (week.length) {
                 const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
                 document.getElementById('avg').textContent = avg.toFixed(2);
             }
-            
-            document.getElementById('historyCards').innerHTML = state.history.map(r =>
-                `<div class="glass-card p-4 mb-4 flex items-center gap-4">
-                    <img src="data:image/jpeg;base64,${r.crop}" class="w-24 h-20 object-cover rounded-xl border-2">
-                    <div class="flex-1">
-                        <p class="font-semibold">${new Date(r.time).toLocaleDateString()}</p>
-                        <p class="text-xs text-gray-500">${new Date(r.time).toLocaleTimeString()}</p>
-                        <p class="text-2xl font-bold text-cyan-600 mt-1">${r.hb.toFixed(2)} g/dL</p>
-                    </div>
-                </div>`
-            ).join('');
-            
-            const insightText = state.history.length < 3 ? 
-                'Take at least 3 readings to generate insights.' :
-                `Your Hb trend is ${state.history[0].hb > state.history[state.history.length-1].hb ? 'improving! 📈' : 'stable ➡️'}`;
+            if (state.goal) {
+                document.getElementById('goalSection').classList.remove('hidden');
+                document.getElementById('goalValue').textContent = state.goal.toFixed(1);
+                const progress = Math.min((latest.hb / state.goal) * 100, 100);
+                document.getElementById('goalProgress').style.width = progress + '%';
+                if (latest.hb >= state.goal) document.getElementById('goalStatus').textContent = '🎉 Goal reached!';
+                else {
+                    const remaining = state.goal - latest.hb;
+                    document.getElementById('goalStatus').textContent = `${remaining.toFixed(1)} g/dL to go`;
+                }
+            }
+            const recommendations = getSmartRecommendations();
+            if (recommendations.length > 0) {
+                document.getElementById('recommendationsSection').classList.remove('hidden');
+                document.getElementById('recommendationsContent').innerHTML = recommendations.map(r => `<div class="flex items-center gap-3 p-3 bg-cyan-50 rounded-xl"><span class="text-2xl">${r.icon}</span><p class="text-sm text-gray-700">${r.text}</p></div>`).join('');
+            }
+            const prediction = getTrendPrediction();
+            if (prediction) {
+                document.getElementById('predictionsSection').classList.remove('hidden');
+                document.getElementById('predictionText').textContent = prediction;
+            }
+            const healthScore = calculateHealthScore();
+            document.getElementById('healthScoreSection').classList.remove('hidden');
+            document.getElementById('healthScore').textContent = healthScore;
+            document.getElementById('healthScoreDesc').textContent = getHealthScoreDescription(healthScore);
+            const badges = calculateBadges();
+            if (badges.length > 0) {
+                document.getElementById('badgesSection').classList.remove('hidden');
+                document.getElementById('badgesContent').innerHTML = badges.map(b => `<div class="glass-card p-3 text-center"><div class="text-3xl mb-1">${b.emoji}</div><p class="font-semibold text-xs">${b.name}</p><p class="text-xs text-gray-500">${b.desc}</p></div>`).join('');
+            }
+            document.getElementById('historyCards').innerHTML = state.history.map((r, index) => `<div class="history-card swipe-item glass-card p-4 mb-4 flex items-center gap-4 card-hover" data-index="${index}"><img src="data:image/jpeg;base64,${r.crop}" class="w-24 h-20 object-cover rounded-xl border-2"><div class="flex-1"><p class="font-semibold">${new Date(r.time).toLocaleDateString()}</p><p class="text-xs text-gray-500">${new Date(r.time).toLocaleTimeString()}</p><p class="text-2xl font-bold text-cyan-600 mt-1">${r.hb.toFixed(2)} g/dL</p></div></div>`).join('');
+            setupSwipeHandlers();
+            if (state.history.length > 0) {
+                document.getElementById('photoGallerySection').classList.remove('hidden');
+                document.getElementById('photoGallery').innerHTML = state.history.slice(0, 9).map(r => `<div class="relative"><img src="data:image/jpeg;base64,${r.crop}" class="w-full h-24 object-cover rounded-xl border-2 border-white shadow"><div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">${r.hb.toFixed(1)}</div></div>`).join('');
+            }
+            const insightText = state.history.length < 3 ? 'Take at least 3 readings to generate insights.' : `Your Hb trend is ${state.history[0].hb > state.history[state.history.length-1].hb ? 'improving! 📈' : 'stable ➡️'}`;
             document.getElementById('insights').innerHTML = `<p>${insightText}</p>`;
         }
     }
@@ -343,200 +644,146 @@
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Hb (g/dL)',
-                    data,
-                    borderColor: '#0891b2',
-                    backgroundColor: 'rgba(8, 145, 178, 0.1)',
-                    tension: 0.4
-                }]
-            },
+            data: {labels, datasets: [{label: 'Hb (g/dL)', data, borderColor: '#0891b2', backgroundColor: 'rgba(8, 145, 178, 0.1)', tension: 0.4, fill: true}]},
             options: {responsive: true, maintainAspectRatio: true}
         });
     }
 
     async function analyze(b64, isManualCrop = false) {
         document.getElementById('loadingModal').classList.remove('hidden');
-        
         try {
             const response = await fetch(API, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    image_b64: b64,
-                    manual_crop: isManualCrop
-                })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({image_b64: b64, manual_crop: isManualCrop})
             });
-
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.detail || 'Analysis failed');
             }
-
             const data = await response.json();
-            
-            // Check if YOLO failed and this wasn't already a manual crop
             if (data.detection_method === 'fallback' && !isManualCrop) {
                 document.getElementById('loadingModal').classList.add('hidden');
-                
-                // Store the full image for manual cropping
                 currentFullImage = b64;
-                
-                // Show YOLO failure modal
                 document.getElementById('yoloFailModal').classList.remove('hidden');
-                return; // Don't save the result yet
+                return;
             }
-            
-            // Success! Create new reading
-            const newReading = {
-                hb: data.hb_value,
-                is_anemic: data.is_anemic,
-                crop: data.crop_b64,
-                time: Date.now(),
-                method: data.detection_method
-            };
+            const newReading = {hb: data.hb_value, is_anemic: data.is_anemic, crop: data.crop_b64, time: Date.now(), method: data.detection_method};
+            if (state.history.length > 0 && newReading.hb > state.history[0].hb) celebrateSuccess();
             state.history.unshift(newReading);
-            
             localStorage.setItem('history', JSON.stringify(state.history));
             updateViews();
             showView('dashboardView');
-
+            haptic('success');
         } catch (error) {
             console.error(error);
             document.getElementById('errorMsg').textContent = `Analysis Error: ${error.message}`;
             document.getElementById('errorModal').classList.remove('hidden');
+            haptic('error');
         } finally {
             document.getElementById('loadingModal').classList.add('hidden');
         }
     }
     
-function handleFile(file) {
-    if (!file) return;
+    function handleFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const arrayBuffer = e.target.result;
+            const bytes = new Uint8Array(arrayBuffer);
+            const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');
+            const b64 = btoa(binary);
+            document.getElementById('cameraModal').classList.add('hidden');
+            analyze(b64, false);
+        };
+        reader.readAsArrayBuffer(file);
+    }
     
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        // Get raw bytes without compression
-        const arrayBuffer = e.target.result;
-        const bytes = new Uint8Array(arrayBuffer);
-        const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');
-        const b64 = btoa(binary);
-        
-        // Close camera modal and try YOLO first with FULL image
-        document.getElementById('cameraModal').classList.add('hidden');
-        
-        // Analyze the FULL image - let YOLO detect
-        analyze(b64, false);
-    };
-    reader.readAsArrayBuffer(file);  // Changed from readAsDataURL
-}
-    
-    // Event Listeners
-    document.getElementById('langBtn').addEventListener('click', function() {
-        setLang(state.lang === 'en' ? 'ar' : 'en');
-    });
-    
-    document.querySelectorAll('.navBtn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            showView(btn.dataset.view);
+    function exportData() {
+        if (state.history.length === 0) { alert('No data to export!'); return; }
+        let csv = 'Date,Time,Hemoglobin (g/dL),Anemic\n';
+        state.history.forEach(r => {
+            const date = new Date(r.time);
+            csv += `${date.toLocaleDateString()},${date.toLocaleTimeString()},${r.hb.toFixed(2)},${r.is_anemic ? 'Yes' : 'No'}\n`;
         });
-    });
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `myanemia_data_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        haptic('success');
+    }
     
-    document.getElementById('cameraBtn').addEventListener('click', function() {
-        document.getElementById('cameraModal').classList.remove('hidden');
-    });
-    
-    document.getElementById('closeModal').addEventListener('click', function() {
-        document.getElementById('cameraModal').classList.add('hidden');
-    });
-    
-    document.getElementById('cameraInput').addEventListener('change', function(e) {
-        handleFile(e.target.files[0]);
-    });
-    
-    document.getElementById('uploadInput').addEventListener('change', function(e) {
-        handleFile(e.target.files[0]);
-    });
-    
-    // NEW: Handle manual crop button from YOLO fail modal
+    document.getElementById('langBtn').addEventListener('click', () => setLang(state.lang === 'en' ? 'ar' : 'en'));
+    document.querySelectorAll('.navBtn').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+    document.getElementById('cameraBtn').addEventListener('click', () => { document.getElementById('cameraModal').classList.remove('hidden'); haptic('light'); });
+    document.getElementById('closeModal').addEventListener('click', () => { document.getElementById('cameraModal').classList.add('hidden'); haptic('light'); });
+    document.getElementById('cameraInput').addEventListener('change', e => handleFile(e.target.files[0]));
+    document.getElementById('uploadInput').addEventListener('change', e => handleFile(e.target.files[0]));
     document.getElementById('manualCrop').addEventListener('click', function() {
         document.getElementById('yoloFailModal').classList.add('hidden');
-        
-        // Show crop interface with the full image
         const cropImg = document.getElementById('cropImg');
         cropImg.src = 'data:image/jpeg;base64,' + currentFullImage;
-        
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-        
+        if (cropper) { cropper.destroy(); cropper = null; }
         cropImg.onload = () => {
             document.getElementById('cropModal').classList.remove('hidden');
-            
-            cropper = new Cropper(cropImg, {
-                viewMode: 1,
-                dragMode: 'move',
-                background: false,
-                autoCropArea: 0.8,
-                guides: true,
-                center: true,
-                highlight: true,
-                cropBoxResizable: true,
-                cropBoxMovable: true,
-                toggleDragModeOnDblclick: false
-            });
+            cropper = new Cropper(cropImg, {viewMode: 1, dragMode: 'move', background: false, autoCropArea: 0.8, guides: true, center: true, highlight: true, cropBoxResizable: true, cropBoxMovable: true, toggleDragModeOnDblclick: false});
         };
+        haptic('light');
     });
-    
-    // NEW: Handle retake photo button
-    document.getElementById('retakePhoto').addEventListener('click', function() {
-        document.getElementById('yoloFailModal').classList.add('hidden');
-        document.getElementById('cameraModal').classList.remove('hidden');
-        currentFullImage = null;
-    });
-    
-    document.getElementById('backCrop').addEventListener('click', function() {
-        document.getElementById('cropModal').classList.add('hidden');
-        document.getElementById('cameraModal').classList.remove('hidden');
-        if (cropper) cropper.destroy();
-    });
-    
-    // UPDATED: confirmCrop - mark as manual crop
+    document.getElementById('retakePhoto').addEventListener('click', () => { document.getElementById('yoloFailModal').classList.add('hidden'); document.getElementById('cameraModal').classList.remove('hidden'); currentFullImage = null; haptic('light'); });
+    document.getElementById('backCrop').addEventListener('click', () => { document.getElementById('cropModal').classList.add('hidden'); document.getElementById('cameraModal').classList.remove('hidden'); if (cropper) cropper.destroy(); haptic('light'); });
     document.getElementById('confirmCrop').addEventListener('click', function() {
         if (!cropper) return;
         const canvas = cropper.getCroppedCanvas({width: 800});
         const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
         document.getElementById('cropModal').classList.add('hidden');
         if (cropper) cropper.destroy();
-        
-        // This is a manual crop, tell the backend
         analyze(b64, true);
     });
-    
-    document.getElementById('closeError').addEventListener('click', function() {
-        document.getElementById('errorModal').classList.add('hidden');
+    document.getElementById('closeError').addEventListener('click', () => { document.getElementById('errorModal').classList.add('hidden'); haptic('light'); });
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (state.deleteIndex !== null) {
+            state.history.splice(state.deleteIndex, 1);
+            localStorage.setItem('history', JSON.stringify(state.history));
+            updateViews();
+            state.deleteIndex = null;
+        }
+        document.getElementById('deleteConfirmModal').classList.add('hidden');
+        haptic('success');
     });
-    
+    document.getElementById('cancelDelete').addEventListener('click', () => { document.getElementById('deleteConfirmModal').classList.add('hidden'); state.deleteIndex = null; haptic('light'); });
+    document.getElementById('editGoalBtn').addEventListener('click', () => { document.getElementById('goalInput').value = state.goal; document.getElementById('goalModal').classList.remove('hidden'); haptic('light'); });
+    document.getElementById('saveGoal').addEventListener('click', function() {
+        const newGoal = parseFloat(document.getElementById('goalInput').value);
+        if (newGoal >= 8 && newGoal <= 18) {
+            state.goal = newGoal;
+            localStorage.setItem('goal', newGoal);
+            updateViews();
+            document.getElementById('goalModal').classList.add('hidden');
+            haptic('success');
+        }
+    });
+    document.getElementById('cancelGoal').addEventListener('click', () => { document.getElementById('goalModal').classList.add('hidden'); haptic('light'); });
     document.getElementById('articles').addEventListener('click', function(e) {
         const card = e.target.closest('.articleCard');
         if (!card) return;
-        const article = translations[state.lang].articles.find(function(a) {
-            return a.id === card.dataset.id;
-        });
+        const article = translations[state.lang].articles.find(a => a.id === card.dataset.id);
         if (!article) return;
+        if (!state.readArticles.includes(article.id)) {
+            state.readArticles.push(article.id);
+            localStorage.setItem('readArticles', JSON.stringify(state.readArticles));
+        }
         document.getElementById('articleTitle').textContent = article.title;
         document.getElementById('articleImg').src = article.img;
         document.getElementById('articleContent').innerHTML = article.content;
         showView('articleView');
+        haptic('light');
     });
+    document.getElementById('backBtn').addEventListener('click', () => { showView('dashboardView'); haptic('light'); });
     
-    document.getElementById('backBtn').addEventListener('click', function() {
-        showView('dashboardView');
-    });
-    
-    // Initialize
     setLang(localStorage.getItem('lang') || 'en');
     updateViews();
     </script>
