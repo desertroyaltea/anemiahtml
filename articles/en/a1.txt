@@ -1,0 +1,3 @@
+<h3 class="text-lg font-bold mb-3">Red Blood Cells</h3>
+<p class="mb-3">Anemia is when your blood lacks healthy red blood cells or hemoglobin.</p>
+<p>When you have anemia, your body doesn't get enough oxygen-rich blood, leading to fatigue and weakness.</p>

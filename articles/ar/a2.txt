@@ -1,0 +1,3 @@
+<h3 class="text-lg font-bold mb-3 text-right">أنواع مختلفة</h3>
+<p class="mb-3 text-right">فقر الدم الناجم عن نقص الحديد هو الأكثر شيوعاً.</p>
+<p class="text-right">نقص الفيتامينات والأمراض المزمنة أيضاً شائعة.</p>

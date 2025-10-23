@@ -1,0 +1,3 @@
+<h3 class="text-lg font-bold mb-3">Different Types</h3>
+<p class="mb-3">Iron-deficiency anemia is most common worldwide.</p>
+<p>Vitamin-deficiency and chronic disease anemia are also common.</p>
