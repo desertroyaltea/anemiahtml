@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         [lang="en"] body { font-family: 'Inter', sans-serif; }
@@ -77,7 +78,7 @@
                     <p id="noReadings" class="text-gray-500">No readings yet. Tap camera to start!</p>
                 </div>
                 <div id="comparisonView" class="mt-4 pt-4 border-t border-gray-200 hidden">
-                    <p class="text-sm text-gray-600 mb-2">Compared to last week:</p>
+                    <p id="comparedToLastWeek" class="text-sm text-gray-600 mb-2">Compared to last week:</p>
                     <div id="comparisonContent" class="flex items-center justify-center gap-2"></div>
                 </div>
             </div>
@@ -95,11 +96,11 @@
             
             <div id="goalSection" class="glass-card p-6 mb-6 card-hover hidden">
                 <div class="flex justify-between items-center mb-3">
-                    <h2 class="font-semibold text-gray-700">Your Goal</h2>
-                    <button id="editGoalBtn" class="text-cyan-600 text-sm font-semibold btn-press">Edit</button>
+                    <h2 id="yourGoal" class="font-semibold text-gray-700">Your Goal</h2>
+                    <button id="editGoalBtn" class="text-cyan-600 text-sm font-semibold btn-press"><span id="editBtn">Edit</span></button>
                 </div>
                 <div id="goalDisplay">
-                    <p class="text-sm text-gray-600 mb-2">Target Hb: <span id="goalValue" class="font-bold">12.0</span> g/dL</p>
+                    <p class="text-sm text-gray-600 mb-2"><span id="targetHb">Target Hb:</span> <span id="goalValue" class="font-bold">12.0</span> g/dL</p>
                     <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
                         <div id="goalProgress" class="bg-gradient-to-r from-cyan-500 to-green-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
                     </div>
@@ -108,26 +109,26 @@
             </div>
             
             <div id="recommendationsSection" class="glass-card p-6 mb-6 card-hover hidden">
-                <h2 class="font-semibold text-gray-700 text-lg mb-3">📋 Smart Recommendations</h2>
+                <h2 id="smartRecommendations" class="font-semibold text-gray-700 text-lg mb-3">📋 Smart Recommendations</h2>
                 <div id="recommendationsContent" class="space-y-2"></div>
             </div>
             
             <div id="predictionsSection" class="glass-card p-6 mb-6 card-hover hidden">
-                <h2 class="font-semibold text-gray-700 text-lg mb-3">🔮 Trend Prediction</h2>
+                <h2 id="trendPrediction" class="font-semibold text-gray-700 text-lg mb-3">🔮 Trend Prediction</h2>
                 <p id="predictionText" class="text-gray-600"></p>
             </div>
             
             <div id="healthScoreSection" class="glass-card p-6 mb-6 card-hover hidden">
-                <h2 class="font-semibold text-gray-700 text-lg mb-3">⭐ Health Score</h2>
+                <h2 id="healthScoreTitle" class="font-semibold text-gray-700 text-lg mb-3">⭐ Health Score</h2>
                 <div class="text-center">
                     <p id="healthScore" class="text-5xl font-bold text-cyan-600">0</p>
-                    <p class="text-gray-500 mt-1">out of 100</p>
+                    <p id="outOf100" class="text-gray-500 mt-1">out of 100</p>
                     <p id="healthScoreDesc" class="text-sm text-gray-600 mt-2"></p>
                 </div>
             </div>
             
             <div id="badgesSection" class="glass-card p-6 mb-6 card-hover hidden">
-                <h2 class="font-semibold text-gray-700 text-lg mb-3">🏆 Achievements</h2>
+                <h2 id="achievementsTitle" class="font-semibold text-gray-700 text-lg mb-3">🏆 Achievements</h2>
                 <div id="badgesContent" class="flex flex-wrap gap-3"></div>
             </div>
             
@@ -135,7 +136,7 @@
             <div id="articles" class="flex overflow-x-auto gap-4 no-scrollbar -mx-4 px-4"></div>
             
             <div id="photoGallerySection" class="mt-8 hidden">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">📸 Photo Timeline</h2>
+                <h2 id="photoTimeline" class="text-xl font-bold text-gray-800 mb-4">📸 Photo Timeline</h2>
                 <div id="photoGallery" class="grid grid-cols-3 gap-3"></div>
             </div>
         </div>
@@ -143,7 +144,7 @@
         <div id="historyView" class="hidden">
             <div class="flex justify-between items-center mb-6">
                 <h1 id="historyTitle" class="text-3xl font-bold text-gray-800">History</h1>
-                <button id="exportBtn" class="glass-card px-4 py-2 rounded-full font-semibold text-cyan-600 btn-press">📤 Export</button>
+                <button id="exportBtn" class="glass-card px-4 py-2 rounded-full font-semibold text-cyan-600 btn-press"><span id="exportLabel">📤 Export</span></button>
             </div>
             <div id="historyCards"></div>
         </div>
@@ -269,23 +270,23 @@
     <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6 text-center">
             <div class="text-6xl mb-4">🗑️</div>
-            <h2 class="text-xl font-bold">Delete Reading?</h2>
-            <p class="text-gray-600 mt-2">This action cannot be undone</p>
+            <h2 id="deleteReadingTitle" class="text-xl font-bold">Delete Reading?</h2>
+            <p id="deleteReadingMsg" class="text-gray-600 mt-2">This action cannot be undone</p>
             <div class="flex gap-4 mt-6">
-                <button id="cancelDelete" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">Cancel</button>
-                <button id="confirmDelete" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold btn-press">Delete</button>
+                <button id="cancelDelete" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press"><span id="cancelBtn">Cancel</span></button>
+                <button id="confirmDelete" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold btn-press"><span id="deleteBtn">Delete</span></button>
             </div>
         </div>
     </div>
     
     <div id="goalModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6">
-            <h2 class="text-xl font-bold mb-4">Set Your Goal</h2>
-            <p class="text-sm text-gray-600 mb-4">Target Hemoglobin Level (g/dL)</p>
+            <h2 id="setGoalTitle" class="text-xl font-bold mb-4">Set Your Goal</h2>
+            <p id="targetHbLevel" class="text-sm text-gray-600 mb-4">Target Hemoglobin Level (g/dL)</p>
             <input type="number" id="goalInput" step="0.1" min="8" max="18" value="12" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none mb-4">
             <div class="flex gap-4">
-                <button id="cancelGoal" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">Cancel</button>
-                <button id="saveGoal" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press">Save Goal</button>
+                <button id="cancelGoal" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press"><span id="cancelGoalBtn">Cancel</span></button>
+                <button id="saveGoal" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press"><span id="saveGoalBtn">Save Goal</span></button>
             </div>
         </div>
     </div>
@@ -297,17 +298,77 @@
     
     const translations = {
         en: {
+            // Main sections
             title: 'Dashboard', subtitle: 'Your health summary',
             latestReadingTitle: 'Latest Reading', noReadings: 'No readings yet. Tap camera!',
+            comparedToLastWeek: 'Compared to last week:',
             avg7Label: 'Average (7 days)', totalLabel: 'Total Readings',
             historyTitle: 'History', progressTitle: 'Progress', insightsTitle: 'Insights',
             educationTitle: 'Anemia Education',
+            
+            // Goal section
+            yourGoal: 'Your Goal', editBtn: 'Edit', targetHb: 'Target Hb', goalReached: '🎉 Goal reached!',
+            toGo: 'to go',
+            
+            // Recommendations
+            smartRecommendations: '📋 Smart Recommendations',
+            rec1: 'Eat iron-rich foods like red meat and leafy greens',
+            rec2: 'Take vitamin C with iron for better absorption',
+            rec3: 'Consult a doctor about iron supplements',
+            rec4: 'Continue eating iron-rich foods',
+            rec5: 'Keep tracking your progress',
+            rec6: 'Great job! Maintain your healthy habits',
+            rec7: 'Continue regular monitoring',
+            
+            // Predictions
+            trendPrediction: '🔮 Trend Prediction',
+            stableTrend: 'Your Hb levels are stable. Keep up your current routine! ➡️',
+            improvingTrend: 'Your Hb is improving! Keep it up! 📈',
+            decliningTrend: 'Your Hb is declining. Consider consulting a healthcare provider. 📉',
+            weeksToGoal: 'weeks',
+            greatProgress: 'Great progress! At this rate, you\'ll reach your goal in about',
+            
+            // Health Score
+            healthScoreTitle: '⭐ Health Score', outOf100: 'out of 100',
+            excellentScore: 'Excellent! Keep it up! 🌟',
+            goodScore: 'Good progress! 👍',
+            onTrackScore: 'You\'re on track! 💪',
+            keepMonitoring: 'Keep monitoring! 📊',
+            
+            // Achievements
+            achievementsTitle: '🏆 Achievements',
+            badge1Name: 'First Reading', badge1Desc: 'Started your journey',
+            badge2Name: 'Week Warrior', badge2Desc: '7 readings in 7 days',
+            badge3Name: 'Trend Master', badge3Desc: 'Consistent improvement',
+            badge4Name: 'Health Hero', badge4Desc: 'Reached normal range',
+            badge5Name: 'Consistent Tracker', badge5Desc: '10+ readings',
+            
+            // Photo Timeline
+            photoTimeline: '📸 Photo Timeline',
+            
+            // Navigation
             navDashboard: 'Dashboard', navHistory: 'History', navProgress: 'Progress', navInsights: 'Insights',
+            
+            // Modals
             modalTitle: 'New Reading', useCamera: 'Use Camera', upload: 'Upload', cancel: 'Cancel',
             adjustTitle: 'Adjust Image', adjustInfo: 'Focus on the lower eyelid', back: 'Back', confirm: 'Confirm',
             analyzing: 'Analyzing...', errorTitle: 'Oops!', closeBtn: 'Close',
-            yoloFailTitle: "Can't Find Conjunctiva", yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
+            yoloFailTitle: "Can't Find Conjunctiva",
+            yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
             retakeBtn: "Retake Photo", cropManuallyBtn: "Crop Manually",
+            deleteReadingTitle: 'Delete Reading?', deleteReadingMsg: 'This action cannot be undone',
+            cancelBtn: 'Cancel', deleteBtn: 'Delete',
+            setGoalTitle: 'Set Your Goal', targetHbLevel: 'Target Hemoglobin Level (g/dL)',
+            cancelGoalBtn: 'Cancel', saveGoalBtn: 'Save Goal',
+            exportLabel: '📤 Export',
+            
+            // Insights
+            needMoreReadings: 'Take at least 3 readings to generate insights.',
+            improving: 'improving! 📈',
+            stable: 'stable ➡️',
+            trendIs: 'Your Hb trend is',
+            
+            // Articles
             articles: [
                 {id:'a1', img:'anemia-explained.png', title:'Understanding Anemia', time:'3 min',
                  content:'<h3 class="text-lg font-bold mb-3">Red Blood Cells</h3><p class="mb-3">Anemia is when your blood lacks healthy red blood cells or hemoglobin.</p><p>When you have anemia, your body doesn\'t get enough oxygen-rich blood, leading to fatigue and weakness.</p>'},
@@ -318,18 +379,78 @@
             ]
         },
         ar: {
+            // Main sections
             title: 'لوحة التحكم', subtitle: 'ملخص صحتك',
             latestReadingTitle: 'آخر قراءة', noReadings: 'لا توجد قراءات. اضغط الكاميرا!',
+            comparedToLastWeek: 'مقارنة بالأسبوع الماضي:',
             avg7Label: 'متوسط (7 أيام)', totalLabel: 'إجمالي القراءات',
             historyTitle: 'السجل', progressTitle: 'التقدم', insightsTitle: 'إحصاءات',
             educationTitle: 'التثقيف حول فقر الدم',
+            
+            // Goal section
+            yourGoal: 'هدفك', editBtn: 'تعديل', targetHb: 'الهدف:', goalReached: '🎉 تم الوصول للهدف!',
+            toGo: 'متبقي',
+            
+            // Recommendations
+            smartRecommendations: '📋 توصيات ذكية',
+            rec1: 'تناول الأطعمة الغنية بالحديد مثل اللحوم الحمراء والخضروات الورقية',
+            rec2: 'تناول فيتامين ج مع الحديد لامتصاص أفضل',
+            rec3: 'استشر طبيباً حول مكملات الحديد',
+            rec4: 'استمر في تناول الأطعمة الغنية بالحديد',
+            rec5: 'استمر في تتبع تقدمك',
+            rec6: 'عمل رائع! حافظ على عاداتك الصحية',
+            rec7: 'استمر في المراقبة المنتظمة',
+            
+            // Predictions
+            trendPrediction: '🔮 توقع الاتجاه',
+            stableTrend: 'مستويات الهيموجلوبين مستقرة. استمر على نفس الروتين! ➡️',
+            improvingTrend: 'الهيموجلوبين يتحسن! استمر! 📈',
+            decliningTrend: 'الهيموجلوبين ينخفض. فكر في استشارة طبيب. 📉',
+            weeksToGoal: 'أسابيع',
+            greatProgress: 'تقدم رائع! بهذا المعدل، ستصل لهدفك في حوالي',
+            
+            // Health Score
+            healthScoreTitle: '⭐ النقاط الصحية', outOf100: 'من 100',
+            excellentScore: 'ممتاز! استمر! 🌟',
+            goodScore: 'تقدم جيد! 👍',
+            onTrackScore: 'أنت على المسار الصحيح! 💪',
+            keepMonitoring: 'استمر في المراقبة! 📊',
+            
+            // Achievements
+            achievementsTitle: '🏆 الإنجازات',
+            badge1Name: 'أول قراءة', badge1Desc: 'بدأت رحلتك',
+            badge2Name: 'محارب الأسبوع', badge2Desc: '7 قراءات في 7 أيام',
+            badge3Name: 'خبير الاتجاهات', badge3Desc: 'تحسن مستمر',
+            badge4Name: 'بطل الصحة', badge4Desc: 'وصلت للمعدل الطبيعي',
+            badge5Name: 'متتبع مستمر', badge5Desc: '10+ قراءات',
+            
+            // Photo Timeline
+            photoTimeline: '📸 الجدول الزمني للصور',
+            
+            // Navigation
             navDashboard: 'الرئيسية', navHistory: 'السجل', navProgress: 'التقدم', navInsights: 'إحصاءات',
+            
+            // Modals
             modalTitle: 'قراءة جديدة', useCamera: 'استخدام الكاميرا', upload: 'رفع صورة', cancel: 'إلغاء',
             adjustTitle: 'تعديل الصورة', adjustInfo: 'ركز على الجفن السفلي', back: 'رجوع', confirm: 'تأكيد',
             analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', closeBtn: 'إغلاق',
-            yoloFailTitle: "لا يمكن العثور على الملتحمة", yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
+            yoloFailTitle: "لا يمكن العثور على الملتحمة",
+            yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
             retakeBtn: "إعادة التقاط الصورة", cropManuallyBtn: "قص يدوياً",
-articles: [
+            deleteReadingTitle: 'حذف القراءة؟', deleteReadingMsg: 'لا يمكن التراجع عن هذا الإجراء',
+            cancelBtn: 'إلغاء', deleteBtn: 'حذف',
+            setGoalTitle: 'حدد هدفك', targetHbLevel: 'مستوى الهيموجلوبين المستهدف (g/dL)',
+            cancelGoalBtn: 'إلغاء', saveGoalBtn: 'حفظ الهدف',
+            exportLabel: '📤 تصدير',
+            
+            // Insights
+            needMoreReadings: 'قم بإجراء 3 قراءات على الأقل للحصول على رؤى.',
+            improving: 'يتحسن! 📈',
+            stable: 'مستقر ➡️',
+            trendIs: 'اتجاه الهيموجلوبين',
+            
+            // Articles
+            articles: [
                 {id:'a1', img:'anemia-explained.png', title:'فهم فقر الدم', time:'3 دقائق',
                  content:'<h3 class="text-lg font-bold mb-3 text-right">خلايا الدم الحمراء</h3><p class="mb-3 text-right">فقر الدم هو نقص في خلايا الدم الحمراء أو الهيموجلوبين.</p><p class="text-right">عندما تكون مصاباً بفقر الدم، لا يحصل جسمك على كمية كافية من الدم الغني بالأكسجين.</p>'},
                 {id:'a2', img:'anemia-types.png', title:'أنواع فقر الدم', time:'4 دقائق',
@@ -492,57 +613,61 @@ articles: [
     }
     
     function getHealthScoreDescription(score) {
-        if (score >= 80) return "Excellent! Keep it up! 🌟";
-        if (score >= 60) return "Good progress! 👍";
-        if (score >= 40) return "You're on track! 💪";
-        return "Keep monitoring! 📊";
+        const t = translations[state.lang];
+        if (score >= 80) return t.excellentScore;
+        if (score >= 60) return t.goodScore;
+        if (score >= 40) return t.onTrackScore;
+        return t.keepMonitoring;
     }
     
     function calculateBadges() {
         const badges = [];
-        if (state.history.length >= 1) badges.push({emoji: '🎯', name: 'First Reading', desc: 'Started your journey'});
+        const t = translations[state.lang];
+        if (state.history.length >= 1) badges.push({emoji: '🎯', name: t.badge1Name, desc: t.badge1Desc});
         const last7Days = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
-        if (last7Days.length >= 7) badges.push({emoji: '⚡', name: 'Week Warrior', desc: '7 readings in 7 days'});
+        if (last7Days.length >= 7) badges.push({emoji: '⚡', name: t.badge2Name, desc: t.badge2Desc});
         if (state.history.length >= 5) {
             let improving = 0;
             for (let i = 0; i < state.history.length - 1; i++) {
                 if (state.history[i].hb > state.history[i + 1].hb) improving++;
             }
-            if (improving >= 3) badges.push({emoji: '📈', name: 'Trend Master', desc: 'Consistent improvement'});
+            if (improving >= 3) badges.push({emoji: '📈', name: t.badge3Name, desc: t.badge3Desc});
         }
-        if (state.history.length > 0 && state.history[0].hb >= 12) badges.push({emoji: '🦸', name: 'Health Hero', desc: 'Reached normal range'});
-        if (state.history.length >= 10) badges.push({emoji: '🏆', name: 'Consistent Tracker', desc: '10+ readings'});
+        if (state.history.length > 0 && state.history[0].hb >= 12) badges.push({emoji: '🦸', name: t.badge4Name, desc: t.badge4Desc});
+        if (state.history.length >= 10) badges.push({emoji: '🏆', name: t.badge5Name, desc: t.badge5Desc});
         return badges;
     }
     
     function getSmartRecommendations() {
         if (state.history.length === 0) return [];
+        const t = translations[state.lang];
         const latest = state.history[0];
         const recommendations = [];
         if (latest.hb < 10) {
-            recommendations.push({icon: '🥩', text: 'Eat iron-rich foods like red meat and leafy greens'});
-            recommendations.push({icon: '🍊', text: 'Take vitamin C with iron for better absorption'});
-            recommendations.push({icon: '👨‍⚕️', text: 'Consult a doctor about iron supplements'});
+            recommendations.push({icon: '🥩', text: t.rec1});
+            recommendations.push({icon: '🍊', text: t.rec2});
+            recommendations.push({icon: '👨‍⚕️', text: t.rec3});
         } else if (latest.hb < 12) {
-            recommendations.push({icon: '🥗', text: 'Continue eating iron-rich foods'});
-            recommendations.push({icon: '💪', text: 'Keep tracking your progress'});
+            recommendations.push({icon: '🥗', text: t.rec4});
+            recommendations.push({icon: '💪', text: t.rec5});
         } else {
-            recommendations.push({icon: '✅', text: 'Great job! Maintain your healthy habits'});
-            recommendations.push({icon: '📊', text: 'Continue regular monitoring'});
+            recommendations.push({icon: '✅', text: t.rec6});
+            recommendations.push({icon: '📊', text: t.rec7});
         }
         return recommendations;
     }
     
     function getTrendPrediction() {
         if (state.history.length < 3) return null;
+        const t = translations[state.lang];
         const recent = state.history.slice(0, 3).reverse();
         const avgChange = (recent[2].hb - recent[0].hb) / 2;
-        if (Math.abs(avgChange) < 0.1) return "Your Hb levels are stable. Keep up your current routine! ➡️";
+        if (Math.abs(avgChange) < 0.1) return t.stableTrend;
         if (avgChange > 0) {
             const weeksToGoal = state.goal > recent[2].hb ? Math.ceil((state.goal - recent[2].hb) / avgChange) : 0;
-            if (weeksToGoal > 0 && weeksToGoal <= 12) return `Great progress! At this rate, you'll reach your goal in about ${weeksToGoal} weeks! 📈`;
-            return "Your Hb is improving! Keep it up! 📈";
-        } else return "Your Hb is declining. Consider consulting a healthcare provider. 📉";
+            if (weeksToGoal > 0 && weeksToGoal <= 12) return `${t.greatProgress} ${weeksToGoal} ${t.weeksToGoal}! 📈`;
+            return t.improvingTrend;
+        } else return t.decliningTrend;
     }
     
     function updateViews() {
@@ -554,6 +679,7 @@ articles: [
         if (savedReadArticles) state.readArticles = JSON.parse(savedReadArticles);
         const savedGoal = localStorage.getItem('goal');
         if (savedGoal) state.goal = parseFloat(savedGoal);
+        const t = translations[state.lang];
         document.getElementById('total').textContent = state.history.length;
         let streak = 0;
         if (state.history.length > 0) {
@@ -600,10 +726,10 @@ articles: [
                 document.getElementById('goalValue').textContent = state.goal.toFixed(1);
                 const progress = Math.min((latest.hb / state.goal) * 100, 100);
                 document.getElementById('goalProgress').style.width = progress + '%';
-                if (latest.hb >= state.goal) document.getElementById('goalStatus').textContent = '🎉 Goal reached!';
+                if (latest.hb >= state.goal) document.getElementById('goalStatus').textContent = t.goalReached;
                 else {
                     const remaining = state.goal - latest.hb;
-                    document.getElementById('goalStatus').textContent = `${remaining.toFixed(1)} g/dL to go`;
+                    document.getElementById('goalStatus').textContent = `${remaining.toFixed(1)} g/dL ${t.toGo}`;
                 }
             }
             const recommendations = getSmartRecommendations();
@@ -631,7 +757,7 @@ articles: [
                 document.getElementById('photoGallerySection').classList.remove('hidden');
                 document.getElementById('photoGallery').innerHTML = state.history.slice(0, 9).map(r => `<div class="relative"><img src="data:image/jpeg;base64,${r.crop}" class="w-full h-24 object-cover rounded-xl border-2 border-white shadow"><div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">${r.hb.toFixed(1)}</div></div>`).join('');
             }
-            const insightText = state.history.length < 3 ? 'Take at least 3 readings to generate insights.' : `Your Hb trend is ${state.history[0].hb > state.history[state.history.length-1].hb ? 'improving! 📈' : 'stable ➡️'}`;
+            const insightText = state.history.length < 3 ? t.needMoreReadings : `${t.trendIs} ${state.history[0].hb > state.history[state.history.length-1].hb ? t.improving : t.stable}`;
             document.getElementById('insights').innerHTML = `<p>${insightText}</p>`;
         }
     }
@@ -699,19 +825,156 @@ articles: [
         reader.readAsArrayBuffer(file);
     }
     
-    function exportData() {
+    async function exportData() {
         if (state.history.length === 0) { alert('No data to export!'); return; }
-        let csv = 'Date,Time,Hemoglobin (g/dL),Anemic\n';
-        state.history.forEach(r => {
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        
+        // English Version
+        pdf.setFontSize(24);
+        pdf.setTextColor(8, 145, 178);
+        pdf.text('MyAnemia Health Report', pageWidth / 2, 20, { align: 'center' });
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: 'center' });
+        
+        pdf.setDrawColor(8, 145, 178);
+        pdf.setLineWidth(0.5);
+        pdf.line(20, 32, pageWidth - 20, 32);
+        
+        // Summary Section
+        let yPos = 45;
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Summary', 20, yPos);
+        yPos += 10;
+        
+        pdf.setFontSize(11);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text(`Total Readings: ${state.history.length}`, 25, yPos);
+        yPos += 7;
+        
+        const latest = state.history[0];
+        pdf.text(`Latest Reading: ${latest.hb.toFixed(2)} g/dL`, 25, yPos);
+        yPos += 7;
+        
+        const week = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+        if (week.length) {
+            const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
+            pdf.text(`7-Day Average: ${avg.toFixed(2)} g/dL`, 25, yPos);
+            yPos += 7;
+        }
+        
+        const healthScore = calculateHealthScore();
+        pdf.text(`Health Score: ${healthScore}/100`, 25, yPos);
+        yPos += 12;
+        
+        // Readings Table
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Reading History', 20, yPos);
+        yPos += 10;
+        
+        pdf.setFontSize(10);
+        pdf.setFillColor(8, 145, 178);
+        pdf.setTextColor(255, 255, 255);
+        pdf.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+        pdf.text('Date', 25, yPos);
+        pdf.text('Time', 70, yPos);
+        pdf.text('Hemoglobin', 115, yPos);
+        pdf.text('Status', 160, yPos);
+        yPos += 10;
+        
+        pdf.setTextColor(60, 60, 60);
+        state.history.slice(0, 15).forEach((r, index) => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = 20;
+            }
             const date = new Date(r.time);
-            csv += `${date.toLocaleDateString()},${date.toLocaleTimeString()},${r.hb.toFixed(2)},${r.is_anemic ? 'Yes' : 'No'}\n`;
+            pdf.text(date.toLocaleDateString(), 25, yPos);
+            pdf.text(date.toLocaleTimeString(), 70, yPos);
+            pdf.text(`${r.hb.toFixed(2)} g/dL`, 115, yPos);
+            pdf.text(r.is_anemic ? 'Anemic' : 'Normal', 160, yPos);
+            yPos += 7;
         });
-        const blob = new Blob([csv], {type: 'text/csv'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `myanemia_data_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
+        
+        // Add new page for Arabic version
+        pdf.addPage();
+        
+        // Arabic Version (RTL)
+        pdf.setFontSize(24);
+        pdf.setTextColor(8, 145, 178);
+        pdf.text('تقرير صحة فقر الدم', pageWidth / 2, 20, { align: 'center' });
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-SA')}`, pageWidth / 2, 28, { align: 'center' });
+        
+        pdf.setDrawColor(8, 145, 178);
+        pdf.setLineWidth(0.5);
+        pdf.line(20, 32, pageWidth - 20, 32);
+        
+        // Summary Section (Arabic)
+        yPos = 45;
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('ملخص', pageWidth - 20, yPos, { align: 'right' });
+        yPos += 10;
+        
+        pdf.setFontSize(11);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text(`إجمالي القراءات: ${state.history.length}`, pageWidth - 25, yPos, { align: 'right' });
+        yPos += 7;
+        
+        pdf.text(`آخر قراءة: ${latest.hb.toFixed(2)} g/dL`, pageWidth - 25, yPos, { align: 'right' });
+        yPos += 7;
+        
+        if (week.length) {
+            const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
+            pdf.text(`متوسط 7 أيام: ${avg.toFixed(2)} g/dL`, pageWidth - 25, yPos, { align: 'right' });
+            yPos += 7;
+        }
+        
+        pdf.text(`النقاط الصحية: ${healthScore}/100`, pageWidth - 25, yPos, { align: 'right' });
+        yPos += 12;
+        
+        // Readings Table (Arabic)
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('سجل القراءات', pageWidth - 20, yPos, { align: 'right' });
+        yPos += 10;
+        
+        pdf.setFontSize(10);
+        pdf.setFillColor(8, 145, 178);
+        pdf.setTextColor(255, 255, 255);
+        pdf.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+        pdf.text('التاريخ', pageWidth - 25, yPos, { align: 'right' });
+        pdf.text('الوقت', pageWidth - 70, yPos, { align: 'right' });
+        pdf.text('الهيموجلوبين', pageWidth - 115, yPos, { align: 'right' });
+        pdf.text('الحالة', pageWidth - 160, yPos, { align: 'right' });
+        yPos += 10;
+        
+        pdf.setTextColor(60, 60, 60);
+        state.history.slice(0, 15).forEach((r, index) => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = 20;
+            }
+            const date = new Date(r.time);
+            pdf.text(date.toLocaleDateString('ar-SA'), pageWidth - 25, yPos, { align: 'right' });
+            pdf.text(date.toLocaleTimeString('ar-SA'), pageWidth - 70, yPos, { align: 'right' });
+            pdf.text(`${r.hb.toFixed(2)} g/dL`, pageWidth - 115, yPos, { align: 'right' });
+            pdf.text(r.is_anemic ? 'فقر دم' : 'طبيعي', pageWidth - 160, yPos, { align: 'right' });
+            yPos += 7;
+        });
+        
+        // Save PDF
+        pdf.save(`MyAnemia_Report_${new Date().toISOString().split('T')[0]}.pdf`);
         haptic('success');
     }
     
