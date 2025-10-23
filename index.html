@@ -218,7 +218,7 @@
     <div id="cropModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6">
             <h2 id="adjustTitle" class="text-xl font-bold mb-2">Adjust Image</h2>
-            <p id="adjustInfo" class="text-sm text-gray-500 mb-4">Focus on the lower eyelid</p>
+<p id="adjustInfo" class="text-sm text-gray-500 mb-4">Crop to show your eye area</p>
             <div class="bg-gray-200 rounded-xl overflow-hidden mb-4">
                 <img id="cropImg" src="">
             </div>
@@ -351,7 +351,7 @@
             
             // Modals
             modalTitle: 'New Reading', useCamera: 'Use Camera', upload: 'Upload', cancel: 'Cancel',
-            adjustTitle: 'Adjust Image', adjustInfo: 'Focus on the lower eyelid', back: 'Back', confirm: 'Confirm',
+            adjustTitle: 'Adjust Image', adjustInfo: 'Crop to show your eye area', back: 'Back', confirm: 'Confirm',
             analyzing: 'Analyzing...', errorTitle: 'Oops!', closeBtn: 'Close',
             yoloFailTitle: "Can't Find Conjunctiva",
             yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
@@ -432,7 +432,7 @@
             
             // Modals
             modalTitle: 'قراءة جديدة', useCamera: 'استخدام الكاميرا', upload: 'رفع صورة', cancel: 'إلغاء',
-            adjustTitle: 'تعديل الصورة', adjustInfo: 'ركز على الجفن السفلي', back: 'رجوع', confirm: 'تأكيد',
+            adjustTitle: 'تعديل الصورة', adjustInfo: 'اقتص الصورة على منطقة العين', back: 'رجوع', confirm: 'تأكيد',
             analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', closeBtn: 'إغلاق',
             yoloFailTitle: "لا يمكن العثور على الملتحمة",
             yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
@@ -811,19 +811,42 @@
         }
     }
     
-    function handleFile(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const arrayBuffer = e.target.result;
-            const bytes = new Uint8Array(arrayBuffer);
-            const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');
-            const b64 = btoa(binary);
-            document.getElementById('cameraModal').classList.add('hidden');
-            analyze(b64, false);
+function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Close camera modal
+        document.getElementById('cameraModal').classList.add('hidden');
+        
+        // Show crop modal with the image
+        const cropImg = document.getElementById('cropImg');
+        cropImg.src = e.target.result;
+        
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        
+        cropImg.onload = () => {
+            document.getElementById('cropModal').classList.remove('hidden');
+            
+            cropper = new Cropper(cropImg, {
+                viewMode: 1,
+                dragMode: 'move',
+                background: false,
+                autoCropArea: 0.8,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxResizable: true,
+                cropBoxMovable: true,
+                toggleDragModeOnDblclick: false
+            });
         };
-        reader.readAsArrayBuffer(file);
-    }
+        haptic('light');
+    };
+    reader.readAsDataURL(file);  // Changed from readAsArrayBuffer to readAsDataURL
+}
     
     async function exportData() {
         if (state.history.length === 0) { alert('No data to export!'); return; }
@@ -997,14 +1020,15 @@
     });
     document.getElementById('retakePhoto').addEventListener('click', () => { document.getElementById('yoloFailModal').classList.add('hidden'); document.getElementById('cameraModal').classList.remove('hidden'); currentFullImage = null; haptic('light'); });
     document.getElementById('backCrop').addEventListener('click', () => { document.getElementById('cropModal').classList.add('hidden'); document.getElementById('cameraModal').classList.remove('hidden'); if (cropper) cropper.destroy(); haptic('light'); });
-    document.getElementById('confirmCrop').addEventListener('click', function() {
-        if (!cropper) return;
-        const canvas = cropper.getCroppedCanvas({width: 800});
-        const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
-        document.getElementById('cropModal').classList.add('hidden');
-        if (cropper) cropper.destroy();
-        analyze(b64, true);
-    });
+document.getElementById('confirmCrop').addEventListener('click', function() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({width: 800});
+    const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
+    document.getElementById('cropModal').classList.add('hidden');
+    if (cropper) cropper.destroy();
+    // Send cropped image to backend - let backend detect conjunctiva
+    analyze(b64, false);  // Changed from true to false
+});
     document.getElementById('closeError').addEventListener('click', () => { document.getElementById('errorModal').classList.add('hidden'); haptic('light'); });
     document.getElementById('exportBtn').addEventListener('click', exportData);
     document.getElementById('confirmDelete').addEventListener('click', function() {
