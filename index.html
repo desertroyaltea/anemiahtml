@@ -462,13 +462,12 @@
                 cropper.destroy();
                 cropper = null;
             }
-        
-        cropImg.onload = () => {
-            document.getElementById('cropModal').classList.remove('hidden');
-            cropper = new Cropper(cropImg, {
-                viewMode: 1,
-                dragMode: 'move',
-                background: false,
+            
+            cropImg.onload = () => {
+                document.getElementById('cropModal').classList.remove('hidden');
+                cropper = new Cropper(cropImg, {
+                    viewMode: 1,
+                    dragMode: 'move',background: false,
                 autoCropArea: 0.8,
                 guides: true,
                 center: true,
@@ -516,7 +515,7 @@ function displayResult(data) {
     document.getElementById('hbValue').textContent = data.hb_value.toFixed(1);
     
     // Set status badge
-    const statusBadge = document.getElementById('statusBadge').querySelector('div');
+    const statusBadge = document.getElementById('statusBadge');
     const statusText = document.getElementById('statusText');
     const confidenceText = document.getElementById('confidenceText');
     
@@ -625,3 +624,5 @@ const savedAudio = localStorage.getItem('audioEnabled');
 if (savedAudio !== null) state.audioEnabled = savedAudio === 'true';
 setLang(savedLang);
 </script>
+</body>
+</html>
