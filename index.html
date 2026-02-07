@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickNemia</title>
+    <title>MyAnemia</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         [lang="en"] body { font-family: 'Inter', sans-serif; }
@@ -19,6 +21,23 @@
             border: 1px solid rgba(255,255,255,0.3);
             box-shadow: 0 8px 32px rgba(31,38,135,0.15), 0 0 0 1px rgba(255,255,255,0.1) inset;
         }
+        .nav-active svg, .nav-active p { color: #0891b2; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        [dir="rtl"] .ltr-icon { display: none; }
+        [dir="rtl"] .rtl-icon { display: block !important; }
+        [dir="ltr"] .rtl-icon { display: none; }
+        .blood-drop {
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            animation: drip 1.5s ease-in-out infinite;
+        }
+        @keyframes drip {
+            0%, 100% { transform: rotate(-45deg) translateY(0); }
+            50% { transform: rotate(-45deg) translateY(10px); }
+        }
         .btn-press:active {
             transform: scale(0.95);
             transition: transform 0.1s ease;
@@ -30,193 +49,154 @@
             transform: translateY(-4px);
             box-shadow: 0 12px 40px rgba(31,38,135,0.25);
         }
-        [dir="rtl"] .ltr-icon { transform: scaleX(-1); }
-        .high-contrast { filter: contrast(1.2); }
-        .text-large { font-size: 1.125rem !important; }
-        .text-large h1 { font-size: 2.5rem !important; }
-        .text-large h2 { font-size: 1.875rem !important; }
-        .text-large p, .text-large span { font-size: 1.25rem !important; }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .swipe-item {
+            position: relative;
+            transition: transform 0.3s ease;
         }
     </style>
 </head>
 <body class="text-gray-800">
-    <!-- Accessibility Controls -->
-    <div class="fixed top-4 left-4 z-50 flex gap-2">
-        <button id="contrastBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold btn-press shadow-lg" title="Toggle High Contrast">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.4 6.4l-.7-.7M6.3 6.3l-.7-.7m12.8 0l-.7.7M6.3 17.7l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-        </button>
-        <button id="textSizeBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold btn-press shadow-lg" title="Toggle Text Size">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
-        </button>
-        <button id="audioBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold btn-press shadow-lg" title="Toggle Audio Feedback">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M15.5 5v14m-5.5-7H5.5m14 0h-4.5"/></svg>
-        </button>
-    </div>
-
     <div id="langBtnContainer" class="fixed top-4 z-[100]" style="right: 1rem;">
         <button id="langBtn" class="glass-card w-10 h-10 flex items-center justify-center text-cyan-700 font-bold btn-press shadow-lg">ع</button>
     </div>
 
     <main class="max-w-xl mx-auto p-4 pb-32">
-        <!-- Main Screen -->
-        <div id="mainScreen" class="fade-in">
+        <div id="dashboardView">
             <div class="flex justify-between items-center mb-6">
                 <img src="logo.png" alt="Logo" class="w-20 h-20 rounded-full shadow-lg" onerror="this.style.display='none'">
+                <div id="streak" class="glass-card px-4 py-2 rounded-full mt-12">
+                    <span class="text-2xl">🔥</span>
+                    <span class="font-bold text-gray-700">0</span>
+                </div>
             </div>
-            <h1 id="title" class="text-3xl font-bold text-gray-800 mb-2">QuickNemia</h1>
-            <p id="subtitle" class="text-gray-600 mb-6">Point-of-Care Anemia Screening</p>
+            <h1 id="title" class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
+            <p id="subtitle" class="text-gray-600 mb-6">Your health summary</p>
             
-            <button id="scanBtn" class="w-full glass-card p-8 mb-4 text-center card-hover btn-press">
-                <svg class="h-16 w-16 mx-auto text-cyan-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                <p id="scanBtnText" class="text-xl font-bold text-gray-800">Scan Patient</p>
-            </button>
+            <div class="glass-card p-6 mb-6 card-hover">
+                <h2 id="latestReadingTitle" class="font-semibold text-gray-700 mb-2">Latest Reading</h2>
+                <div id="latestReading" class="text-center py-4">
+                    <p id="noReadings" class="text-gray-500">No readings yet. Tap camera to start!</p>
+                </div>
+                <div id="comparisonView" class="mt-4 pt-4 border-t border-gray-200 hidden">
+                    <p id="comparedToLastWeek" class="text-sm text-gray-600 mb-2">Compared to last week:</p>
+                    <div id="comparisonContent" class="flex items-center justify-center gap-2"></div>
+                </div>
+            </div>
             
-            <button id="tutorialBtn" class="w-full glass-card p-4 text-center card-hover btn-press">
-                <p id="tutorialBtnText" class="font-semibold text-cyan-600">View Tutorial</p>
-            </button>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="glass-card p-4 text-center card-hover">
+                    <p id="avg7Label" class="text-sm text-gray-600">Average (7 days)</p>
+                    <p id="avg" class="text-2xl font-bold text-cyan-600 mt-2">-</p>
+                </div>
+                <div class="glass-card p-4 text-center card-hover">
+                    <p id="totalLabel" class="text-sm text-gray-600">Total Readings</p>
+                    <p id="total" class="text-2xl font-bold text-cyan-600 mt-2">0</p>
+                </div>
+            </div>
+            
+            <div id="goalSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 id="yourGoal" class="font-semibold text-gray-700">Your Goal</h2>
+                    <button id="editGoalBtn" class="text-cyan-600 text-sm font-semibold btn-press"><span id="editBtn">Edit</span></button>
+                </div>
+                <div id="goalDisplay">
+                    <p class="text-sm text-gray-600 mb-2"><span id="targetHb">Target Hb:</span> <span id="goalValue" class="font-bold">12.0</span> g/dL</p>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div id="goalProgress" class="bg-gradient-to-r from-cyan-500 to-green-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <p id="goalStatus" class="text-xs text-gray-500"></p>
+                </div>
+            </div>
+            
+            <div id="recommendationsSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 id="smartRecommendations" class="font-semibold text-gray-700 text-lg mb-3">Smart Recommendations</h2>
+                <div id="recommendationsContent" class="space-y-2"></div>
+            </div>
+            
+            <div id="predictionsSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 id="trendPrediction" class="font-semibold text-gray-700 text-lg mb-3">Trend Prediction</h2>
+                <p id="predictionText" class="text-gray-600"></p>
+            </div>
+            
+            <div id="healthScoreSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 id="healthScoreTitle" class="font-semibold text-gray-700 text-lg mb-3">Health Score</h2>
+                <div class="text-center">
+                    <p id="healthScore" class="text-5xl font-bold text-cyan-600">0</p>
+                    <p id="outOf100" class="text-gray-500 mt-1">out of 100</p>
+                    <p id="healthScoreDesc" class="text-sm text-gray-600 mt-2"></p>
+                </div>
+            </div>
+            
+            <div id="badgesSection" class="glass-card p-6 mb-6 card-hover hidden">
+                <h2 id="achievementsTitle" class="font-semibold text-gray-700 text-lg mb-3">Achievements</h2>
+                <div id="badgesContent" class="flex flex-wrap gap-3"></div>
+            </div>
+            
+            <h2 id="educationTitle" class="text-xl font-bold text-gray-800 mb-4">Anemia Education</h2>
+            <div id="articles" class="flex overflow-x-auto gap-4 no-scrollbar -mx-4 px-4"></div>
+            
+            <div id="photoGallerySection" class="mt-8 hidden">
+                <h2 id="photoTimeline" class="text-xl font-bold text-gray-800 mb-4">Photo Timeline</h2>
+                <div id="photoGallery" class="grid grid-cols-3 gap-3"></div>
+            </div>
         </div>
 
-        <!-- Tutorial Screen -->
-        <div id="tutorialScreen" class="hidden fade-in">
-            <button id="closeTutorial" class="glass-card p-3 mb-4 text-cyan-600 btn-press">
+        <div id="historyView" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h1 id="historyTitle" class="text-3xl font-bold text-gray-800">History</h1>
+                <button id="exportBtn" class="glass-card px-4 py-2 rounded-full font-semibold text-cyan-600 btn-press"><span id="exportLabel">📤 Export</span></button>
+            </div>
+            <div id="historyCards"></div>
+        </div>
+
+        <div id="progressView" class="hidden">
+            <h1 id="progressTitle" class="text-3xl font-bold text-gray-800 mb-6">Progress</h1>
+            <div class="glass-card p-6"><canvas id="chart"></canvas></div>
+        </div>
+
+        <div id="insightsView" class="hidden">
+            <h1 id="insightsTitle" class="text-3xl font-bold text-gray-800 mb-6">Insights</h1>
+            <div id="insights" class="glass-card p-6"></div>
+        </div>
+
+        <div id="articleView" class="hidden">
+            <button id="backBtn" class="glass-card p-3 mb-4 text-cyan-600 btn-press">
                 <svg class="w-6 h-6 ltr-icon inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                <svg class="w-6 h-6 rtl-icon inline hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <svg class="w-6 h-6 rtl-icon inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
-            
-            <h1 id="tutorialTitle" class="text-3xl font-bold text-gray-800 mb-6">How to Scan</h1>
-            
-            <div class="glass-card p-6 mb-4 card-hover">
-                <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-600 font-bold">1</div>
-                    <div>
-                        <h3 id="step1Title" class="font-bold text-gray-800 mb-2">Position the Patient</h3>
-                        <p id="step1Text" class="text-gray-600 text-sm">Ask patient to look up. Gently pull down the lower eyelid to expose the conjunctiva.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="glass-card p-6 mb-4 card-hover">
-                <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-600 font-bold">2</div>
-                    <div>
-                        <h3 id="step2Title" class="font-bold text-gray-800 mb-2">Good Lighting</h3>
-                        <p id="step2Text" class="text-gray-600 text-sm">Ensure adequate natural or artificial lighting. Avoid harsh shadows or direct glare.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="glass-card p-6 mb-4 card-hover">
-                <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-600 font-bold">3</div>
-                    <div>
-                        <h3 id="step3Title" class="font-bold text-gray-800 mb-2">Capture Image</h3>
-                        <p id="step3Text" class="text-gray-600 text-sm">Hold camera 10-15cm away. Focus on the lower eyelid conjunctiva. Capture or upload image.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="glass-card p-6 mb-4 card-hover">
-                <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-600 font-bold">4</div>
-                    <div>
-                        <h3 id="step4Title" class="font-bold text-gray-800 mb-2">Review Results</h3>
-                        <p id="step4Text" class="text-gray-600 text-sm">AI will analyze the image and provide Hb estimation with anemia status. Heat map shows AI focus areas.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="glass-card p-4 bg-yellow-50 border-l-4 border-yellow-400">
-                <p id="noteText" class="text-sm text-gray-700">
-                    <strong>Note:</strong> This tool is for screening purposes only. Clinical correlation and confirmatory laboratory testing are recommended.
-                </p>
-            </div>
-        </div>
-
-        <!-- Result Screen -->
-        <div id="resultScreen" class="hidden fade-in">
-            <h1 id="resultTitle" class="text-3xl font-bold text-gray-800 mb-6">Screening Result</h1>
-            
-            <!-- Hb Value Display -->
-            <div class="glass-card p-6 mb-4 text-center card-hover">
-                <p id="hbLabel" class="text-sm text-gray-600 mb-2">Hemoglobin Level</p>
-                <div class="flex items-baseline justify-center gap-2">
-                    <span id="hbValue" class="text-5xl font-bold text-cyan-600"></span>
-                    <span class="text-2xl text-gray-500">g/dL</span>
-                </div>
-            </div>
-            
-            <!-- Status Badge -->
-            <div class="glass-card p-6 mb-4 text-center card-hover">
-                <p id="statusLabel" class="text-sm text-gray-600 mb-3">Anemia Status</p>
-                <div id="statusBadge" class="inline-block px-6 py-3 rounded-full text-white font-bold text-lg">
-                    <span id="statusText"></span>
-                </div>
-                <p id="confidenceText" class="text-sm text-gray-500 mt-3"></p>
-            </div>
-            
-            <!-- GradCAM Visualization -->
-            <div class="glass-card p-6 mb-4 card-hover">
-                <h2 id="gradcamTitle" class="font-semibold text-gray-700 text-lg mb-3">AI Analysis Visualization</h2>
-                <div class="grid grid-cols-2 gap-4 mb-3">
-                    <div>
-                        <p id="originalLabel" class="text-sm text-gray-600 mb-2 text-center">Original</p>
-                        <img id="originalImg" src="" class="w-full rounded-xl border-2 border-gray-200">
-                    </div>
-                    <div>
-                        <p id="heatmapLabel" class="text-sm text-gray-600 mb-2 text-center">AI Focus Map</p>
-                        <img id="gradcamImg" src="" class="w-full rounded-xl border-2 border-gray-200">
-                    </div>
-                </div>
-                <p id="gradcamExplain" class="text-xs text-gray-500 text-center">Red areas indicate regions the AI focused on for classification</p>
-            </div>
-            
-            <!-- WHO Reference Ranges -->
-            <div class="glass-card p-6 mb-4 card-hover">
-                <h2 id="whoTitle" class="font-semibold text-gray-700 text-lg mb-3">WHO Reference Ranges</h2>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span id="whoMen" class="text-gray-700">Adult Men:</span>
-                        <span class="font-semibold">13-17 g/dL</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span id="whoWomen" class="text-gray-700">Adult Women:</span>
-                        <span class="font-semibold">12-16 g/dL</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span id="whoPregnant" class="text-gray-700">Pregnant Women:</span>
-                        <span class="font-semibold">11-14 g/dL</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span id="whoChildren" class="text-gray-700">Children (6-59mo):</span>
-                        <span class="font-semibold">11+ g/dL</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-2 gap-4">
-                <button id="retakeBtn" class="glass-card py-4 rounded-xl font-semibold text-gray-700 btn-press card-hover">
-                    <span id="retakeText">Retake</span>
-                </button>
-                <button id="nextBtn" class="bg-gradient-to-br from-cyan-500 to-cyan-700 text-white py-4 rounded-xl font-semibold btn-press shadow-xl">
-                    <span id="nextText">Next Patient</span>
-                </button>
-            </div>
+            <img id="articleImg" src="" class="w-full h-48 object-cover rounded-3xl mb-4">
+            <h1 id="articleTitle" class="text-2xl font-bold text-gray-800 mb-4">Article</h1>
+            <div id="articleContent" class="glass-card p-6 leading-relaxed text-gray-600"></div>
         </div>
     </main>
 
-    <!-- Camera Modal -->
+    <footer class="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white/90 backdrop-blur-lg border-t z-40">
+        <nav class="flex justify-around items-center h-20">
+            <button class="navBtn nav-active text-gray-500 text-center btn-press" data-view="dashboardView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h2v2H4V6zm6 0h2v2h-2V6zm6 0h2v2h-2V6zM4 12h2v2H4v-2zm6 0h2v2h-2v-2zm6 0h2v2h-2v-2zM4 18h2v2H4v-2zm6 0h2v2h-2v-2zm6 0h2v2h-2v-2z"/></svg>
+                <p id="navDashboard" class="text-xs mt-1">Dashboard</p>
+            </button>
+            <button class="navBtn text-gray-500 text-center btn-press" data-view="historyView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p id="navHistory" class="text-xs mt-1">History</p>
+            </button>
+            <button id="cameraBtn" class="bg-gradient-to-br from-cyan-500 to-cyan-700 text-white rounded-full w-16 h-16 flex items-center justify-center -mt-8 shadow-xl btn-press">
+                <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+            <button class="navBtn text-gray-500 text-center btn-press" data-view="progressView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                <p id="navProgress" class="text-xs mt-1">Progress</p>
+            </button>
+            <button class="navBtn text-gray-500 text-center btn-press" data-view="insightsView">
+                <svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9.7 17h4.7M12 3v1m6.4 1.6l-.7.7M21 12h-1M4 12H3m3.3-5.7l-.7-.7m2.8 9.9a5 5 0 117 0l-.5.5A3.4 3.4 0 0014 18.5V19a2 2 0 11-4 0v-.5c0-.9-.4-1.8-1-2.4l-.5-.5z"/></svg>
+                <p id="navInsights" class="text-xs mt-1">Insights</p>
+            </button>
+        </nav>
+    </footer>
+
     <div id="cameraModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6">
-            <h2 id="modalTitle" class="text-xl font-bold mb-4">New Scan</h2>
+            <h2 id="modalTitle" class="text-xl font-bold mb-4">New Reading</h2>
             <div class="flex gap-4">
                 <label class="flex-1 cursor-pointer bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-2xl border-2 border-dashed border-cyan-300 text-center btn-press">
                     <svg class="h-8 w-8 mx-auto text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" d="M3 9h.9a2 2 0 001.7-.9l.8-1.2A2 2 0 018 6h8a2 2 0 011.7.9l.8 1.2a2 2 0 001.7.9H21v11H3V9zm12 4a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -235,11 +215,10 @@
         </div>
     </div>
 
-    <!-- Crop Modal -->
     <div id="cropModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6">
             <h2 id="adjustTitle" class="text-xl font-bold mb-2">Adjust Image</h2>
-            <p id="adjustInfo" class="text-sm text-gray-500 mb-4">Crop to show conjunctiva area</p>
+<p id="adjustInfo" class="text-sm text-gray-500 mb-4">Crop to show your eye area</p>
             <div class="bg-gray-200 rounded-xl overflow-hidden mb-4">
                 <img id="cropImg" src="">
             </div>
@@ -254,375 +233,868 @@
         </div>
     </div>
 
-    <!-- Loading Modal -->
     <div id="loadingModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
         <div class="glass-card p-8 text-center">
-            <div class="w-16 h-16 border-4 border-cyan-200 border-t-cyan-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="blood-drop mx-auto mb-4"></div>
             <p id="analyzing" class="text-lg font-semibold">Analyzing...</p>
         </div>
     </div>
 
-    <!-- Error Modal -->
+    <div id="yoloFailModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6 text-center">
+            <div class="text-6xl mb-4">👁️</div>
+            <h2 id="yoloFailTitle" class="text-xl font-bold mb-2">Can't Find Conjunctiva</h2>
+            <p id="yoloFailMsg" class="text-gray-600 mb-4">The AI couldn't detect your lower eyelid automatically. Please crop the image manually.</p>
+            <div class="flex gap-4">
+                <button id="retakePhoto" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press">
+                    <span id="retakeBtn">Retake Photo</span>
+                </button>
+                <button id="manualCrop" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press">
+                    <span id="cropManuallyBtn">Crop Manually</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="errorModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md p-6 text-center">
-            <div class="text-6xl mb-4">⚠</div>
-            <h2 id="errorTitle" class="text-xl font-bold">Error</h2>
+            <div class="text-6xl mb-4">😔</div>
+            <h2 id="errorTitle" class="text-xl font-bold">Oops!</h2>
             <p id="errorMsg" class="text-gray-600 mt-2">Something went wrong</p>
             <button id="closeError" class="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-semibold btn-press">
                 <span id="closeBtn">Close</span>
             </button>
         </div>
     </div>
+    
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6 text-center">
+            <div class="text-6xl mb-4">🗑️</div>
+            <h2 id="deleteReadingTitle" class="text-xl font-bold">Delete Reading?</h2>
+            <p id="deleteReadingMsg" class="text-gray-600 mt-2">This action cannot be undone</p>
+            <div class="flex gap-4 mt-6">
+                <button id="cancelDelete" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press"><span id="cancelBtn">Cancel</span></button>
+                <button id="confirmDelete" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold btn-press"><span id="deleteBtn">Delete</span></button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="goalModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-6">
+            <h2 id="setGoalTitle" class="text-xl font-bold mb-4">Set Your Goal</h2>
+            <p id="targetHbLevel" class="text-sm text-gray-600 mb-4">Target Hemoglobin Level (g/dL)</p>
+            <input type="number" id="goalInput" step="0.1" min="8" max="18" value="12" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none mb-4">
+            <div class="flex gap-4">
+                <button id="cancelGoal" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold btn-press"><span id="cancelGoalBtn">Cancel</span></button>
+                <button id="saveGoal" class="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold btn-press"><span id="saveGoalBtn">Save Goal</span></button>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50" style="display:none;"></canvas>
 
     <script>
     const API = "https://alna7el-Anemia-Pen-Backend.hf.space/api/analyze";
     
     const translations = {
         en: {
-            title: "QuickNemia",
-            subtitle: "Point-of-Care Anemia Screening",
-            scanBtnText: "Scan Patient",
-            tutorialBtnText: "View Tutorial",
-            tutorialTitle: "How to Scan",
-            step1Title: "Position the Patient",
-            step1Text: "Ask patient to look up. Gently pull down the lower eyelid to expose the conjunctiva.",
-            step2Title: "Good Lighting",
-            step2Text: "Ensure adequate natural or artificial lighting. Avoid harsh shadows or direct glare.",
-            step3Title: "Capture Image",
-            step3Text: "Hold camera 10-15cm away. Focus on the lower eyelid conjunctiva. Capture or upload image.",
-            step4Title: "Review Results",
-            step4Text: "AI will analyze the image and provide Hb estimation with anemia status. Heat map shows AI focus areas.",
-            noteText: "This tool is for screening purposes only. Clinical correlation and confirmatory laboratory testing are recommended.",
-            resultTitle: "Screening Result",
-            hbLabel: "Hemoglobin Level",
-            statusLabel: "Anemia Status",
-            gradcamTitle: "AI Analysis Visualization",
-            originalLabel: "Original",
-            heatmapLabel: "AI Focus Map",
-            gradcamExplain: "Red areas indicate regions the AI focused on for classification",
-            whoTitle: "WHO Reference Ranges",
-            whoMen: "Adult Men:",
-            whoWomen: "Adult Women:",
-            whoPregnant: "Pregnant Women:",
-            whoChildren: "Children (6-59mo):",
-            retakeText: "Retake",
-            nextText: "Next Patient",
-            modalTitle: "New Scan",
-            useCamera: "Use Camera",
-            upload: "Upload",
-            cancel: "Cancel",
-            adjustTitle: "Adjust Image",
-            adjustInfo: "Crop to show conjunctiva area",
-            back: "Back",
-            confirm: "Confirm",
-            analyzing: "Analyzing...",
-            errorTitle: "Error",
-            closeBtn: "Close",
-            confidencePrefix: "AI Confidence: "
+            // Main sections
+            title: 'Dashboard', subtitle: 'Your health summary',
+            latestReadingTitle: 'Latest Reading', noReadings: 'No readings yet. Tap camera!',
+            comparedToLastWeek: 'Compared to last week:',
+            avg7Label: 'Average (7 days)', totalLabel: 'Total Readings',
+            historyTitle: 'History', progressTitle: 'Progress', insightsTitle: 'Insights',
+            educationTitle: 'Anemia Education',
+            
+            // Goal section
+            yourGoal: 'Your Goal', editBtn: 'Edit', targetHb: 'Target Hb', goalReached: '🎉 Goal reached!',
+            toGo: 'to go',
+            
+            // Recommendations
+            smartRecommendations: 'Smart Recommendations',
+            rec1: 'Eat iron-rich foods like red meat and leafy greens',
+            rec2: 'Take vitamin C with iron for better absorption',
+            rec3: 'Consult a doctor about iron supplements',
+            rec4: 'Continue eating iron-rich foods',
+            rec5: 'Keep tracking your progress',
+            rec6: 'Great job! Maintain your healthy habits',
+            rec7: 'Continue regular monitoring',
+            
+            // Predictions
+            trendPrediction: 'Trend Prediction',
+            stableTrend: 'Your Hb levels are stable. Keep up your current routine! ➡️',
+            improvingTrend: 'Your Hb is improving! Keep it up! 📈',
+            decliningTrend: 'Your Hb is declining. Consider consulting a healthcare provider. 📉',
+            weeksToGoal: 'weeks',
+            greatProgress: 'Great progress! At this rate, you\'ll reach your goal in about',
+            
+            // Health Score
+            healthScoreTitle: 'Health Score', outOf100: 'out of 100',
+            excellentScore: 'Excellent! Keep it up!',
+            goodScore: 'Good progress!',
+            onTrackScore: 'You\'re on track!',
+            keepMonitoring: 'Keep monitoring!',
+            
+            // Achievements
+            achievementsTitle: 'Achievements',
+            badge1Name: 'First Reading', badge1Desc: 'Started your journey',
+            badge2Name: 'Week Warrior', badge2Desc: '7 readings in 7 days',
+            badge3Name: 'Trend Master', badge3Desc: 'Consistent improvement',
+            badge4Name: 'Health Hero', badge4Desc: 'Reached normal range',
+            badge5Name: 'Consistent Tracker', badge5Desc: '10+ readings',
+            
+            // Photo Timeline
+            photoTimeline: 'Photo Timeline',
+            
+            // Navigation
+            navDashboard: 'Dashboard', navHistory: 'History', navProgress: 'Progress', navInsights: 'Insights',
+            
+            // Modals
+            modalTitle: 'New Reading', useCamera: 'Use Camera', upload: 'Upload', cancel: 'Cancel',
+            adjustTitle: 'Adjust Image', adjustInfo: 'Crop to show your eye area', back: 'Back', confirm: 'Confirm',
+            analyzing: 'Analyzing...', errorTitle: 'Oops!', closeBtn: 'Close',
+            yoloFailTitle: "Can't Find Conjunctiva",
+            yoloFailMsg: "The AI couldn't detect your lower eyelid automatically. Please crop the image manually.",
+            retakeBtn: "Retake Photo", cropManuallyBtn: "Crop Manually",
+            deleteReadingTitle: 'Delete Reading?', deleteReadingMsg: 'This action cannot be undone',
+            cancelBtn: 'Cancel', deleteBtn: 'Delete',
+            setGoalTitle: 'Set Your Goal', targetHbLevel: 'Target Hemoglobin Level (g/dL)',
+            cancelGoalBtn: 'Cancel', saveGoalBtn: 'Save Goal',
+            exportLabel: '📤 Export',
+            
+            // Insights
+            needMoreReadings: 'Take at least 3 readings to generate insights.',
+            improving: 'improving! 📈',
+            stable: 'stable ➡️',
+            trendIs: 'Your Hb trend is',
+            
+            // Articles
+articles: [
+    {id:'a1', img:'anemia-explained.png', title:'Understanding Anemia', time:'3 min'},
+    {id:'a2', img:'anemia-types.png', title:'Types of Anemia', time:'4 min'},
+    {id:'a3', img:'anemia-diet.png', title:'Nutrition Guide', time:'5 min'}
+]
         },
         ar: {
-            title: "كويك نيميا",
-            subtitle: "فحص فقر الدم السريع",
-            scanBtnText: "فحص المريض",
-            tutorialBtnText: "عرض الدليل",
-            tutorialTitle: "كيفية الفحص",
-            step1Title: "وضعية المريض",
-            step1Text: "اطلب من المريض النظر للأعلى. اسحب الجفن السفلي برفق لكشف الملتحمة.",
-            step2Title: "إضاءة جيدة",
-            step2Text: "تأكد من وجود إضاءة طبيعية أو صناعية كافية. تجنب الظلال القاسية أو الوهج المباشر.",
-            step3Title: "التقاط الصورة",
-            step3Text: "امسك الكاميرا على بعد 10-15 سم. ركز على ملتحمة الجفن السفلي. التقط الصورة أو قم برفعها.",
-            step4Title: "مراجعة النتائج",
-            step4Text: "سيقوم الذكاء الاصطناعي بتحليل الصورة وتقديم تقدير Hb مع حالة فقر الدم. تظهر الخريطة الحرارية مناطق تركيز الذكاء الاصطناعي.",
-            noteText: "هذه الأداة لأغراض الفحص فقط. يوصى بالارتباط السريري والاختبار المعملي التأكيدي.",
-            resultTitle: "نتيجة الفحص",
-            hbLabel: "مستوى الهيموجلوبين",
-            statusLabel: "حالة فقر الدم",
-            gradcamTitle: "تصور التحليل بالذكاء الاصطناعي",
-            originalLabel: "الأصلية",
-            heatmapLabel: "خريطة تركيز الذكاء الاصطناعي",
-            gradcamExplain: "المناطق الحمراء تشير إلى المناطق التي ركز عليها الذكاء الاصطناعي",
-            whoTitle: "مراجع منظمة الصحة العالمية",
-            whoMen: "الرجال البالغون:",
-            whoWomen: "النساء البالغات:",
-            whoPregnant: "النساء الحوامل:",
-            whoChildren: "الأطفال (6-59 شهر):",
-            retakeText: "إعادة التقاط",
-            nextText: "المريض التالي",
-            modalTitle: "فحص جديد",
-            useCamera: "استخدام الكاميرا",
-            upload: "رفع",
-            cancel: "إلغاء",
-            adjustTitle: "ضبط الصورة",
-            adjustInfo: "اقتص لإظهار منطقة الملتحمة",
-            back: "رجوع",
-            confirm: "تأكيد",
-            analyzing: "جاري التحليل...",
-            errorTitle: "خطأ",
-            closeBtn: "إغلاق",
-            confidencePrefix: "ثقة الذكاء الاصطناعي: "
+            // Main sections
+            title: 'لوحة التحكم', subtitle: 'ملخص صحتك',
+            latestReadingTitle: 'آخر قراءة', noReadings: 'لا توجد قراءات. اضغط الكاميرا!',
+            comparedToLastWeek: 'مقارنة بالأسبوع الماضي:',
+            avg7Label: 'متوسط (7 أيام)', totalLabel: 'إجمالي القراءات',
+            historyTitle: 'السجل', progressTitle: 'التقدم', insightsTitle: 'إحصاءات',
+            educationTitle: 'التثقيف حول فقر الدم',
+            
+            // Goal section
+            yourGoal: 'هدفك', editBtn: 'تعديل', targetHb: 'الهدف:', goalReached: '🎉 تم الوصول للهدف!',
+            toGo: 'متبقي',
+            
+            // Recommendations
+            smartRecommendations: 'توصيات ذكية',
+            rec1: 'تناول الأطعمة الغنية بالحديد مثل اللحوم الحمراء والخضروات الورقية',
+            rec2: 'تناول فيتامين ج مع الحديد لامتصاص أفضل',
+            rec3: 'استشر طبيباً حول مكملات الحديد',
+            rec4: 'استمر في تناول الأطعمة الغنية بالحديد',
+            rec5: 'استمر في تتبع تقدمك',
+            rec6: 'عمل رائع! حافظ على عاداتك الصحية',
+            rec7: 'استمر في المراقبة المنتظمة',
+            
+            // Predictions
+            trendPrediction: 'توقع الاتجاه',
+            stableTrend: 'مستويات الهيموجلوبين مستقرة. استمر على نفس الروتين! ➡️',
+            improvingTrend: 'الهيموجلوبين يتحسن! استمر! 📈',
+            decliningTrend: 'الهيموجلوبين ينخفض. فكر في استشارة طبيب. 📉',
+            weeksToGoal: 'أسابيع',
+            greatProgress: 'تقدم رائع! بهذا المعدل، ستصل لهدفك في حوالي',
+            
+            // Health Score
+            healthScoreTitle: ' النقاط الصحية', outOf100: 'من 100',
+            excellentScore: 'ممتاز! استمر!',
+            goodScore: 'تقدم جيد!',
+            onTrackScore: 'أنت على المسار الصحيح!',
+            keepMonitoring: 'استمر في المراقبة!',
+            
+            // Achievements
+            achievementsTitle: 'الإنجازات',
+            badge1Name: 'أول قراءة', badge1Desc: 'بدأت رحلتك',
+            badge2Name: 'محارب الأسبوع', badge2Desc: '7 قراءات في 7 أيام',
+            badge3Name: 'خبير الاتجاهات', badge3Desc: 'تحسن مستمر',
+            badge4Name: 'بطل الصحة', badge4Desc: 'وصلت للمعدل الطبيعي',
+            badge5Name: 'متتبع مستمر', badge5Desc: '10+ قراءات',
+            
+            // Photo Timeline
+            photoTimeline: 'الجدول الزمني للصور',
+            
+            // Navigation
+            navDashboard: 'الرئيسية', navHistory: 'السجل', navProgress: 'التقدم', navInsights: 'إحصاءات',
+            
+            // Modals
+            modalTitle: 'قراءة جديدة', useCamera: 'استخدام الكاميرا', upload: 'رفع صورة', cancel: 'إلغاء',
+            adjustTitle: 'تعديل الصورة', adjustInfo: 'اقتص الصورة على منطقة العين', back: 'رجوع', confirm: 'تأكيد',
+            analyzing: 'جاري التحليل...', errorTitle: 'عذراً!', closeBtn: 'إغلاق',
+            yoloFailTitle: "لا يمكن العثور على الملتحمة",
+            yoloFailMsg: "لم يتمكن الذكاء الاصطناعي من اكتشاف الجفن السفلي تلقائياً. يرجى قص الصورة يدوياً.",
+            retakeBtn: "إعادة التقاط الصورة", cropManuallyBtn: "قص يدوياً",
+            deleteReadingTitle: 'حذف القراءة؟', deleteReadingMsg: 'لا يمكن التراجع عن هذا الإجراء',
+            cancelBtn: 'إلغاء', deleteBtn: 'حذف',
+            setGoalTitle: 'حدد هدفك', targetHbLevel: 'مستوى الهيموجلوبين المستهدف (g/dL)',
+            cancelGoalBtn: 'إلغاء', saveGoalBtn: 'حفظ الهدف',
+            exportLabel: '📤 تصدير',
+            
+            // Insights
+            needMoreReadings: 'قم بإجراء 3 قراءات على الأقل للحصول على رؤى.',
+            improving: 'يتحسن! 📈',
+            stable: 'مستقر ➡️',
+            trendIs: 'اتجاه الهيموجلوبين',
+            
+            // Articles
+            articles: [
+                {id:'a1', img:'anemia-explained.png', title:'فهم فقر الدم', time:'3 دقائق'},
+                {id:'a2', img:'anemia-types.png', title:'أنواع فقر الدم', time:'4 دقائق'},
+                {id:'a3', img:'anemia-diet.png', title:'دليل التغذية', time:'5 دقائق'},
+            ]
         }
     };
     
-    let state = {
-        lang: 'en',
-        highContrast: false,
-        largeText: false,
-        audioEnabled: true,
-        currentResult: null
-    };
-    
+    let state = {history: [], lang: 'en', goal: 12.0, bookmarkedArticles: [], readArticles: [], deleteIndex: null};
     let cropper = null;
+    let chart = null;
+    let currentFullImage = null;
     
-    function playSound(type) {
-        if (!state.audioEnabled) return;
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        if (type === 'success') {
-            oscillator.frequency.value = 800;
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
-        } else if (type === 'error') {
-            oscillator.frequency.value = 200;
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        } else {
-            oscillator.frequency.value = 400;
-            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
+    function haptic(type = 'light') {
+        if ('vibrate' in navigator) {
+            const patterns = {light: [10], medium: [20], heavy: [50], success: [10, 50, 10], error: [100, 50, 100]};
+            navigator.vibrate(patterns[type] || patterns.light);
         }
     }
     
-    function haptic() {
-        if ('vibrate' in navigator) {
-            navigator.vibrate(10);
+    function celebrateSuccess() {
+        haptic('success');
+        const canvas = document.getElementById('confettiCanvas');
+        canvas.style.display = 'block';
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const colors = ['#dc2626', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6'];
+        const confettiPieces = [];
+        for (let i = 0; i < 50; i++) {
+            confettiPieces.push({x: Math.random() * canvas.width, y: -10, width: Math.random() * 8 + 5, height: Math.random() * 8 + 5, color: colors[Math.floor(Math.random() * colors.length)], speedY: Math.random() * 3 + 2, speedX: Math.random() * 4 - 2, rotation: Math.random() * 360});
         }
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let allOffScreen = true;
+            confettiPieces.forEach(piece => {
+                piece.y += piece.speedY;
+                piece.x += piece.speedX;
+                piece.rotation += 5;
+                if (piece.y < canvas.height) allOffScreen = false;
+                ctx.save();
+                ctx.translate(piece.x, piece.y);
+                ctx.rotate(piece.rotation * Math.PI / 180);
+                ctx.fillStyle = piece.color;
+                ctx.fillRect(-piece.width/2, -piece.height/2, piece.width, piece.height);
+                ctx.restore();
+            });
+            if (!allOffScreen) requestAnimationFrame(animate);
+            else canvas.style.display = 'none';
+        }
+        animate();
+    }
+    
+    let pullStartY = 0, isPulling = false;
+    document.addEventListener('touchstart', function(e) {
+        if (window.scrollY === 0 && !document.getElementById('dashboardView').classList.contains('hidden')) pullStartY = e.touches[0].clientY;
+    });
+    document.addEventListener('touchmove', function(e) {
+        if (pullStartY > 0 && window.scrollY === 0) {
+            const pullDistance = e.touches[0].clientY - pullStartY;
+            if (pullDistance > 100 && !isPulling) { isPulling = true; haptic('medium'); }
+        }
+    });
+    document.addEventListener('touchend', function(e) {
+        if (isPulling) { isPulling = false; updateViews(); haptic('light'); }
+        pullStartY = 0;
+    });
+    
+    function setupSwipeHandlers() {
+        document.querySelectorAll('.history-card').forEach((card, index) => {
+            let startX = 0, currentX = 0;
+            card.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; });
+            card.addEventListener('touchmove', function(e) {
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                if (diff > 0) card.style.transform = `translateX(-${Math.min(diff, 80)}px)`;
+            });
+            card.addEventListener('touchend', function(e) {
+                const diff = startX - currentX;
+                if (diff > 80) { state.deleteIndex = index; document.getElementById('deleteConfirmModal').classList.remove('hidden'); haptic('medium'); }
+                else card.style.transform = 'translateX(0)';
+            });
+        });
     }
     
     function setLang(lang) {
         state.lang = lang;
         document.documentElement.lang = lang;
         document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-        
         const langBtn = document.getElementById('langBtn');
-        const langBtnContainer = document.getElementById('langBtnContainer');
-        langBtn.textContent = lang === 'en' ? 'ع' : 'E';
-        
-        if (lang === 'ar') {
-            langBtnContainer.style.right = 'auto';
-            langBtnContainer.style.left = '1rem';
-        } else {
-            langBtnContainer.style.left = 'auto';
-            langBtnContainer.style.right = '1rem';
-        }
-        
+const langBtnContainer = document.getElementById('langBtnContainer');
+langBtn.textContent = lang === 'en' ? 'ع' : 'E';
+
+// Position button based on language direction
+if (lang === 'ar') {
+    langBtnContainer.style.right = 'auto';
+    langBtnContainer.style.left = '1rem';
+} else {
+    langBtnContainer.style.left = 'auto';
+    langBtnContainer.style.right = '1rem';
+}
         const t = translations[lang];
         Object.keys(t).forEach(key => {
             const el = document.getElementById(key);
-            if (el) {
-                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                    el.placeholder = t[key];
-                } else {
-                    el.textContent = t[key];
+            if (el && typeof t[key] === 'string') el.textContent = t[key];
+        });
+        renderArticles();
+        updateViews();
+        localStorage.setItem('lang', lang);
+    }
+    
+    function renderArticles() {
+        const arts = translations[state.lang].articles;
+        const html = arts.map(a => {
+            const isBookmarked = state.bookmarkedArticles.includes(a.id);
+            const isRead = state.readArticles.includes(a.id);
+            return `<div class="articleCard min-w-[224px] glass-card overflow-hidden cursor-pointer card-hover" data-id="${a.id}">
+                <div class="relative">
+                    <img src="${a.img}" class="w-full h-32 object-cover" onerror="this.src='https://placehold.co/400x200/06b6d4/FFF?text=${encodeURIComponent(a.title)}'">
+                    <div class="absolute top-2 right-2 text-2xl bookmark-icon" data-article="${a.id}">${isBookmarked ? '⭐' : '☆'}</div>
+                    <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">⏱️ ${a.time}</div>
+                    ${isRead ? '<div class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">✓ Read</div>' : ''}
+                </div>
+                <p class="p-4 font-semibold text-sm">${a.title}</p>
+            </div>`;
+        }).join('');
+        document.getElementById('articles').innerHTML = html;
+        document.querySelectorAll('.bookmark-icon').forEach(icon => {
+            icon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleBookmark(this.dataset.article);
+                haptic('light');
+            });
+        });
+    }
+    
+    function toggleBookmark(articleId) {
+        const index = state.bookmarkedArticles.indexOf(articleId);
+        if (index > -1) state.bookmarkedArticles.splice(index, 1);
+        else state.bookmarkedArticles.push(articleId);
+        localStorage.setItem('bookmarks', JSON.stringify(state.bookmarkedArticles));
+        renderArticles();
+    }
+    
+async function loadArticleContent(articleId, lang) {
+    try {
+        const response = await fetch(`articles/${lang}/${articleId}.txt`);
+        if (!response.ok) throw new Error('Article not found');
+        const content = await response.text();
+        return content;
+    } catch (error) {
+        console.error('Error loading article:', error);
+        return '<p class="text-red-500">Unable to load article content.</p>';
+    }
+}
+
+    function showView(id) {
+        document.querySelectorAll('[id$="View"]').forEach(v => v.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        document.querySelectorAll('.navBtn').forEach(b => b.classList.toggle('nav-active', b.dataset.view === id));
+        if (id === 'progressView') setTimeout(updateChart, 50);
+        haptic('light');
+    }
+    
+    function calculateHealthScore() {
+        if (state.history.length === 0) return 0;
+        let score = 0;
+        const latest = state.history[0];
+        if (latest.hb >= 12) score += 40;
+        else if (latest.hb >= 11) score += 30;
+        else if (latest.hb >= 10) score += 20;
+        else score += 10;
+        const last7Days = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+        score += Math.min(last7Days.length * 5, 30);
+        if (state.history.length >= 3) {
+            const recent = state.history.slice(0, 3);
+            if (recent[0].hb > recent[2].hb) score += 30;
+            else score += 15;
+        }
+        return Math.min(score, 100);
+    }
+    
+    function getHealthScoreDescription(score) {
+        const t = translations[state.lang];
+        if (score >= 80) return t.excellentScore;
+        if (score >= 60) return t.goodScore;
+        if (score >= 40) return t.onTrackScore;
+        return t.keepMonitoring;
+    }
+    
+    function calculateBadges() {
+        const badges = [];
+        const t = translations[state.lang];
+        if (state.history.length >= 1) badges.push({emoji: '🎯', name: t.badge1Name, desc: t.badge1Desc});
+        const last7Days = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+        if (last7Days.length >= 7) badges.push({emoji: '⚡', name: t.badge2Name, desc: t.badge2Desc});
+        if (state.history.length >= 5) {
+            let improving = 0;
+            for (let i = 0; i < state.history.length - 1; i++) {
+                if (state.history[i].hb > state.history[i + 1].hb) improving++;
+            }
+            if (improving >= 3) badges.push({emoji: '📈', name: t.badge3Name, desc: t.badge3Desc});
+        }
+        if (state.history.length > 0 && state.history[0].hb >= 12) badges.push({emoji: '🦸', name: t.badge4Name, desc: t.badge4Desc});
+        if (state.history.length >= 10) badges.push({emoji: '🏆', name: t.badge5Name, desc: t.badge5Desc});
+        return badges;
+    }
+    
+    function getSmartRecommendations() {
+        if (state.history.length === 0) return [];
+        const t = translations[state.lang];
+        const latest = state.history[0];
+        const recommendations = [];
+        if (latest.hb < 10) {
+            recommendations.push({icon: '🥩', text: t.rec1});
+            recommendations.push({icon: '🍊', text: t.rec2});
+            recommendations.push({icon: '👨‍⚕️', text: t.rec3});
+        } else if (latest.hb < 12) {
+            recommendations.push({icon: '🥗', text: t.rec4});
+            recommendations.push({icon: '💪', text: t.rec5});
+        } else {
+            recommendations.push({icon: '✅', text: t.rec6});
+            recommendations.push({icon: '📊', text: t.rec7});
+        }
+        return recommendations;
+    }
+    
+    function getTrendPrediction() {
+        if (state.history.length < 3) return null;
+        const t = translations[state.lang];
+        const recent = state.history.slice(0, 3).reverse();
+        const avgChange = (recent[2].hb - recent[0].hb) / 2;
+        if (Math.abs(avgChange) < 0.1) return t.stableTrend;
+        if (avgChange > 0) {
+            const weeksToGoal = state.goal > recent[2].hb ? Math.ceil((state.goal - recent[2].hb) / avgChange) : 0;
+            if (weeksToGoal > 0 && weeksToGoal <= 12) return `${t.greatProgress} ${weeksToGoal} ${t.weeksToGoal}! 📈`;
+            return t.improvingTrend;
+        } else return t.decliningTrend;
+    }
+    
+    function updateViews() {
+        const saved = localStorage.getItem('history');
+        if (saved) state.history = JSON.parse(saved);
+        const savedBookmarks = localStorage.getItem('bookmarks');
+        if (savedBookmarks) state.bookmarkedArticles = JSON.parse(savedBookmarks);
+        const savedReadArticles = localStorage.getItem('readArticles');
+        if (savedReadArticles) state.readArticles = JSON.parse(savedReadArticles);
+        const savedGoal = localStorage.getItem('goal');
+        if (savedGoal) state.goal = parseFloat(savedGoal);
+        const t = translations[state.lang];
+        document.getElementById('total').textContent = state.history.length;
+        let streak = 0;
+        if (state.history.length > 0) {
+            const today = new Date().toDateString();
+            const lastReading = new Date(state.history[0].time).toDateString();
+            if (today === lastReading) {
+                streak = 1;
+                for (let i = 1; i < state.history.length; i++) {
+                    const prevDate = new Date(state.history[i-1].time);
+                    const currDate = new Date(state.history[i].time);
+                    const daysDiff = Math.floor((prevDate - currDate) / (1000*60*60*24));
+                    if (daysDiff === 1) streak++;
+                    else break;
                 }
             }
-        });
-        
-        localStorage.setItem('lang', lang);
-        playSound('click');
-    }
-    
-    function showScreen(screenId) {
-        document.querySelectorAll('[id$="Screen"]').forEach(s => s.classList.add('hidden'));
-        document.getElementById(screenId).classList.remove('hidden');
-        document.getElementById(screenId).classList.add('fade-in');
-        haptic();
-    }
-    
-    function handleFile(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('cameraModal').classList.add('hidden');
-            const cropImg = document.getElementById('cropImg');
-            cropImg.src = e.target.result;
-            
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
+        }
+        document.querySelector('#streak span:last-child').textContent = streak;
+        if (state.history.length > 0) {
+            const latest = state.history[0];
+            let color = 'text-red-500';
+            if (latest.hb >= 12) color = 'text-green-500';
+            else if (latest.hb >= 10) color = 'text-yellow-500';
+            document.getElementById('latestReading').innerHTML = `<p class="text-5xl font-bold ${color}">${latest.hb.toFixed(2)} <span class="text-3xl text-gray-500">g/dL</span></p>`;
+            const lastWeek = state.history.filter(r => {
+                const weekAgo = Date.now() - 7*24*60*60*1000;
+                const twoWeeksAgo = Date.now() - 14*24*60*60*1000;
+                return r.time < weekAgo && r.time > twoWeeksAgo;
+            });
+            if (lastWeek.length > 0) {
+                const lastWeekAvg = lastWeek.reduce((s, r) => s + r.hb, 0) / lastWeek.length;
+                const diff = latest.hb - lastWeekAvg;
+                const arrow = diff > 0 ? '📈' : diff < 0 ? '📉' : '➡️';
+                const diffColor = diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : 'text-gray-600';
+                document.getElementById('comparisonView').classList.remove('hidden');
+                document.getElementById('comparisonContent').innerHTML = `<span class="text-2xl">${arrow}</span><span class="${diffColor} font-bold">${diff > 0 ? '+' : ''}${diff.toFixed(2)} g/dL</span>`;
             }
+            const week = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+            if (week.length) {
+                const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
+                document.getElementById('avg').textContent = avg.toFixed(2);
+            }
+            if (state.goal) {
+                document.getElementById('goalSection').classList.remove('hidden');
+                document.getElementById('goalValue').textContent = state.goal.toFixed(1);
+                const progress = Math.min((latest.hb / state.goal) * 100, 100);
+                document.getElementById('goalProgress').style.width = progress + '%';
+                if (latest.hb >= state.goal) document.getElementById('goalStatus').textContent = t.goalReached;
+                else {
+                    const remaining = state.goal - latest.hb;
+                    document.getElementById('goalStatus').textContent = `${remaining.toFixed(1)} g/dL ${t.toGo}`;
+                }
+            }
+            const recommendations = getSmartRecommendations();
+            if (recommendations.length > 0) {
+                document.getElementById('recommendationsSection').classList.remove('hidden');
+                document.getElementById('recommendationsContent').innerHTML = recommendations.map(r => `<div class="flex items-center gap-3 p-3 bg-cyan-50 rounded-xl"><span class="text-2xl">${r.icon}</span><p class="text-sm text-gray-700">${r.text}</p></div>`).join('');
+            }
+            const prediction = getTrendPrediction();
+            if (prediction) {
+                document.getElementById('predictionsSection').classList.remove('hidden');
+                document.getElementById('predictionText').textContent = prediction;
+            }
+            const healthScore = calculateHealthScore();
+            document.getElementById('healthScoreSection').classList.remove('hidden');
+            document.getElementById('healthScore').textContent = healthScore;
+            document.getElementById('healthScoreDesc').textContent = getHealthScoreDescription(healthScore);
+            const badges = calculateBadges();
+            if (badges.length > 0) {
+                document.getElementById('badgesSection').classList.remove('hidden');
+                document.getElementById('badgesContent').innerHTML = badges.map(b => `<div class="glass-card p-3 text-center"><div class="text-3xl mb-1">${b.emoji}</div><p class="font-semibold text-xs">${b.name}</p><p class="text-xs text-gray-500">${b.desc}</p></div>`).join('');
+            }
+            document.getElementById('historyCards').innerHTML = state.history.map((r, index) => `<div class="history-card swipe-item glass-card p-4 mb-4 flex items-center gap-4 card-hover" data-index="${index}"><img src="data:image/jpeg;base64,${r.crop}" class="w-24 h-20 object-cover rounded-xl border-2"><div class="flex-1"><p class="font-semibold">${new Date(r.time).toLocaleDateString()}</p><p class="text-xs text-gray-500">${new Date(r.time).toLocaleTimeString()}</p><p class="text-2xl font-bold text-cyan-600 mt-1">${r.hb.toFixed(2)} g/dL</p></div></div>`).join('');
+            setupSwipeHandlers();
+            if (state.history.length > 0) {
+                document.getElementById('photoGallerySection').classList.remove('hidden');
+                document.getElementById('photoGallery').innerHTML = state.history.slice(0, 9).map(r => `<div class="relative"><img src="data:image/jpeg;base64,${r.crop}" class="w-full h-24 object-cover rounded-xl border-2 border-white shadow"><div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">${r.hb.toFixed(1)}</div></div>`).join('');
+            }
+            const insightText = state.history.length < 3 ? t.needMoreReadings : `${t.trendIs} ${state.history[0].hb > state.history[state.history.length-1].hb ? t.improving : t.stable}`;
+            document.getElementById('insights').innerHTML = `<p>${insightText}</p>`;
+        }
+    }
+    
+    function updateChart() {
+        if (state.history.length === 0) return;
+        const ctx = document.getElementById('chart').getContext('2d');
+        const labels = state.history.map(r => new Date(r.time).toLocaleDateString()).reverse();
+        const data = state.history.map(r => r.hb).reverse();
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {labels, datasets: [{label: 'Hb (g/dL)', data, borderColor: '#0891b2', backgroundColor: 'rgba(8, 145, 178, 0.1)', tension: 0.4, fill: true}]},
+            options: {responsive: true, maintainAspectRatio: true}
+        });
+    }
+
+    async function analyze(b64, isManualCrop = false) {
+        document.getElementById('loadingModal').classList.remove('hidden');
+        try {
+            const response = await fetch(API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({image_b64: b64, manual_crop: isManualCrop})
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Analysis failed');
+            }
+            const data = await response.json();
+            if (data.detection_method === 'fallback' && !isManualCrop) {
+                document.getElementById('loadingModal').classList.add('hidden');
+                currentFullImage = b64;
+                document.getElementById('yoloFailModal').classList.remove('hidden');
+                return;
+            }
+            const newReading = {hb: data.hb_value, is_anemic: data.is_anemic, crop: data.crop_b64, time: Date.now(), method: data.detection_method};
+            if (state.history.length > 0 && newReading.hb > state.history[0].hb) celebrateSuccess();
+            state.history.unshift(newReading);
+            localStorage.setItem('history', JSON.stringify(state.history));
+            updateViews();
+            showView('dashboardView');
+            haptic('success');
+        } catch (error) {
+            console.error(error);
+            document.getElementById('errorMsg').textContent = `Analysis Error: ${error.message}`;
+            document.getElementById('errorModal').classList.remove('hidden');
+            haptic('error');
+        } finally {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+    }
+    
+function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Close camera modal
+        document.getElementById('cameraModal').classList.add('hidden');
+        
+        // Show crop modal with the image
+        const cropImg = document.getElementById('cropImg');
+        cropImg.src = e.target.result;
+        
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        
+        cropImg.onload = () => {
+            document.getElementById('cropModal').classList.remove('hidden');
             
-            cropImg.onload = () => {
-                document.getElementById('cropModal').classList.remove('hidden');
-                cropper = new Cropper(cropImg, {
-                    viewMode: 1,
-                    dragMode: 'move',background: false,
+            cropper = new Cropper(cropImg, {
+                viewMode: 1,
+                dragMode: 'move',
+                background: false,
                 autoCropArea: 0.8,
                 guides: true,
                 center: true,
                 highlight: true,
                 cropBoxResizable: true,
-                cropBoxMovable: true
+                cropBoxMovable: true,
+                toggleDragModeOnDblclick: false
             });
         };
-        playSound('click');
+        haptic('light');
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file);  // Changed from readAsArrayBuffer to readAsDataURL
 }
-
-async function analyzeImage(b64) {
-    document.getElementById('loadingModal').classList.remove('hidden');
-    try {
-        const response = await fetch(API, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({image_b64: b64})
-        });
+    
+    async function exportData() {
+        if (state.history.length === 0) { alert('No data to export!'); return; }
         
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || 'Analysis failed');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        
+        // English Version
+        pdf.setFontSize(24);
+        pdf.setTextColor(8, 145, 178);
+        pdf.text('MyAnemia Health Report', pageWidth / 2, 20, { align: 'center' });
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: 'center' });
+        
+        pdf.setDrawColor(8, 145, 178);
+        pdf.setLineWidth(0.5);
+        pdf.line(20, 32, pageWidth - 20, 32);
+        
+        // Summary Section
+        let yPos = 45;
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Summary', 20, yPos);
+        yPos += 10;
+        
+        pdf.setFontSize(11);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text(`Total Readings: ${state.history.length}`, 25, yPos);
+        yPos += 7;
+        
+        const latest = state.history[0];
+        pdf.text(`Latest Reading: ${latest.hb.toFixed(2)} g/dL`, 25, yPos);
+        yPos += 7;
+        
+        const week = state.history.filter(r => Date.now() - r.time < 7*24*60*60*1000);
+        if (week.length) {
+            const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
+            pdf.text(`7-Day Average: ${avg.toFixed(2)} g/dL`, 25, yPos);
+            yPos += 7;
         }
         
-        const data = await response.json();
-        state.currentResult = data;
-        displayResult(data);
-        playSound('success');
+        const healthScore = calculateHealthScore();
+        pdf.text(`Health Score: ${healthScore}/100`, 25, yPos);
+        yPos += 12;
         
-    } catch (error) {
-        console.error(error);
-        document.getElementById('errorMsg').textContent = error.message;
-        document.getElementById('errorModal').classList.remove('hidden');
-        playSound('error');
-    } finally {
-        document.getElementById('loadingModal').classList.add('hidden');
+        // Readings Table
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Reading History', 20, yPos);
+        yPos += 10;
+        
+        pdf.setFontSize(10);
+        pdf.setFillColor(8, 145, 178);
+        pdf.setTextColor(255, 255, 255);
+        pdf.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+        pdf.text('Date', 25, yPos);
+        pdf.text('Time', 70, yPos);
+        pdf.text('Hemoglobin', 115, yPos);
+        pdf.text('Status', 160, yPos);
+        yPos += 10;
+        
+        pdf.setTextColor(60, 60, 60);
+        state.history.slice(0, 15).forEach((r, index) => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = 20;
+            }
+            const date = new Date(r.time);
+            pdf.text(date.toLocaleDateString(), 25, yPos);
+            pdf.text(date.toLocaleTimeString(), 70, yPos);
+            pdf.text(`${r.hb.toFixed(2)} g/dL`, 115, yPos);
+            pdf.text(r.is_anemic ? 'Anemic' : 'Normal', 160, yPos);
+            yPos += 7;
+        });
+        
+        // Add new page for Arabic version
+        pdf.addPage();
+        
+        // Arabic Version (RTL)
+        pdf.setFontSize(24);
+        pdf.setTextColor(8, 145, 178);
+        pdf.text('تقرير صحة فقر الدم', pageWidth / 2, 20, { align: 'center' });
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-SA')}`, pageWidth / 2, 28, { align: 'center' });
+        
+        pdf.setDrawColor(8, 145, 178);
+        pdf.setLineWidth(0.5);
+        pdf.line(20, 32, pageWidth - 20, 32);
+        
+        // Summary Section (Arabic)
+        yPos = 45;
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('ملخص', pageWidth - 20, yPos, { align: 'right' });
+        yPos += 10;
+        
+        pdf.setFontSize(11);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text(`إجمالي القراءات: ${state.history.length}`, pageWidth - 25, yPos, { align: 'right' });
+        yPos += 7;
+        
+        pdf.text(`آخر قراءة: ${latest.hb.toFixed(2)} g/dL`, pageWidth - 25, yPos, { align: 'right' });
+        yPos += 7;
+        
+        if (week.length) {
+            const avg = week.reduce((s, r) => s + r.hb, 0) / week.length;
+            pdf.text(`متوسط 7 أيام: ${avg.toFixed(2)} g/dL`, pageWidth - 25, yPos, { align: 'right' });
+            yPos += 7;
+        }
+        
+        pdf.text(`النقاط الصحية: ${healthScore}/100`, pageWidth - 25, yPos, { align: 'right' });
+        yPos += 12;
+        
+        // Readings Table (Arabic)
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('سجل القراءات', pageWidth - 20, yPos, { align: 'right' });
+        yPos += 10;
+        
+        pdf.setFontSize(10);
+        pdf.setFillColor(8, 145, 178);
+        pdf.setTextColor(255, 255, 255);
+        pdf.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+        pdf.text('التاريخ', pageWidth - 25, yPos, { align: 'right' });
+        pdf.text('الوقت', pageWidth - 70, yPos, { align: 'right' });
+        pdf.text('الهيموجلوبين', pageWidth - 115, yPos, { align: 'right' });
+        pdf.text('الحالة', pageWidth - 160, yPos, { align: 'right' });
+        yPos += 10;
+        
+        pdf.setTextColor(60, 60, 60);
+        state.history.slice(0, 15).forEach((r, index) => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = 20;
+            }
+            const date = new Date(r.time);
+            pdf.text(date.toLocaleDateString('ar-SA'), pageWidth - 25, yPos, { align: 'right' });
+            pdf.text(date.toLocaleTimeString('ar-SA'), pageWidth - 70, yPos, { align: 'right' });
+            pdf.text(`${r.hb.toFixed(2)} g/dL`, pageWidth - 115, yPos, { align: 'right' });
+            pdf.text(r.is_anemic ? 'فقر دم' : 'طبيعي', pageWidth - 160, yPos, { align: 'right' });
+            yPos += 7;
+        });
+        
+        // Save PDF
+        pdf.save(`MyAnemia_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        haptic('success');
     }
-}
-
-function displayResult(data) {
-    // Set Hb value
-    document.getElementById('hbValue').textContent = data.hb_value.toFixed(1);
     
-    // Set status badge
-    const statusBadge = document.getElementById('statusBadge');
-    const statusText = document.getElementById('statusText');
-    const confidenceText = document.getElementById('confidenceText');
-    
-    const statusDisplay = state.lang === 'en' ? data.severity : data.severity_ar;
-    statusText.textContent = statusDisplay;
-    confidenceText.textContent = translations[state.lang].confidencePrefix + data.confidence + '%';
-    
-    // Color coding
-    const colorMap = {
-        'green': 'bg-green-500',
-        'yellow': 'bg-yellow-500',
-        'orange': 'bg-orange-500',
-        'red': 'bg-red-600'
-    };
-    
-    statusBadge.className = `inline-block px-6 py-3 rounded-full text-white font-bold text-lg ${colorMap[data.color]}`;
-    
-    // Set images
-    document.getElementById('originalImg').src = 'data:image/jpeg;base64,' + data.crop_b64;
-    document.getElementById('gradcamImg').src = 'data:image/jpeg;base64,' + data.gradcam_b64;
-    
-    // Show result screen
-    showScreen('resultScreen');
-}
-
-// Event Listeners
-document.getElementById('langBtn').addEventListener('click', () => {
-    setLang(state.lang === 'en' ? 'ar' : 'en');
-});
-
-document.getElementById('contrastBtn').addEventListener('click', () => {
-    state.highContrast = !state.highContrast;
-    document.body.classList.toggle('high-contrast', state.highContrast);
-    playSound('click');
-    haptic();
-});
-
-document.getElementById('textSizeBtn').addEventListener('click', () => {
-    state.largeText = !state.largeText;
-    document.body.classList.toggle('text-large', state.largeText);
-    playSound('click');
-    haptic();
-});
-
-document.getElementById('audioBtn').addEventListener('click', () => {
-    state.audioEnabled = !state.audioEnabled;
-    playSound('click');
-    haptic();
-    localStorage.setItem('audioEnabled', state.audioEnabled);
-});
-
-document.getElementById('scanBtn').addEventListener('click', () => {
-    document.getElementById('cameraModal').classList.remove('hidden');
-    playSound('click');
-});
-
-document.getElementById('tutorialBtn').addEventListener('click', () => {
-    showScreen('tutorialScreen');
-});
-
-document.getElementById('closeTutorial').addEventListener('click', () => {
-    showScreen('mainScreen');
-});
-
-document.getElementById('closeModal').addEventListener('click', () => {
-    document.getElementById('cameraModal').classList.add('hidden');
-    playSound('click');
-});
-
-document.getElementById('cameraInput').addEventListener('change', e => handleFile(e.target.files[0]));
-document.getElementById('uploadInput').addEventListener('change', e => handleFile(e.target.files[0]));
-
-document.getElementById('backCrop').addEventListener('click', () => {
-    document.getElementById('cropModal').classList.add('hidden');
-    document.getElementById('cameraModal').classList.remove('hidden');
-    if (cropper) cropper.destroy();
-    playSound('click');
-});
-
+    document.getElementById('langBtn').addEventListener('click', () => setLang(state.lang === 'en' ? 'ar' : 'en'));
+    document.querySelectorAll('.navBtn').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+    document.getElementById('cameraBtn').addEventListener('click', () => { document.getElementById('cameraModal').classList.remove('hidden'); haptic('light'); });
+    document.getElementById('closeModal').addEventListener('click', () => { document.getElementById('cameraModal').classList.add('hidden'); haptic('light'); });
+    document.getElementById('cameraInput').addEventListener('change', e => handleFile(e.target.files[0]));
+    document.getElementById('uploadInput').addEventListener('change', e => handleFile(e.target.files[0]));
+    document.getElementById('manualCrop').addEventListener('click', function() {
+        document.getElementById('yoloFailModal').classList.add('hidden');
+        const cropImg = document.getElementById('cropImg');
+        cropImg.src = 'data:image/jpeg;base64,' + currentFullImage;
+        if (cropper) { cropper.destroy(); cropper = null; }
+        cropImg.onload = () => {
+            document.getElementById('cropModal').classList.remove('hidden');
+            cropper = new Cropper(cropImg, {viewMode: 1, dragMode: 'move', background: false, autoCropArea: 0.8, guides: true, center: true, highlight: true, cropBoxResizable: true, cropBoxMovable: true, toggleDragModeOnDblclick: false});
+        };
+        haptic('light');
+    });
+    document.getElementById('retakePhoto').addEventListener('click', () => { document.getElementById('yoloFailModal').classList.add('hidden'); document.getElementById('cameraModal').classList.remove('hidden'); currentFullImage = null; haptic('light'); });
+    document.getElementById('backCrop').addEventListener('click', () => { document.getElementById('cropModal').classList.add('hidden'); document.getElementById('cameraModal').classList.remove('hidden'); if (cropper) cropper.destroy(); haptic('light'); });
 document.getElementById('confirmCrop').addEventListener('click', function() {
     if (!cropper) return;
     const canvas = cropper.getCroppedCanvas({width: 800});
     const b64 = canvas.toDataURL('image/jpeg').split(',')[1];
     document.getElementById('cropModal').classList.add('hidden');
     if (cropper) cropper.destroy();
-    analyzeImage(b64);
+    // Send cropped image to backend - let backend detect conjunctiva
+    analyze(b64, false);  // Changed from true to false
 });
-
-document.getElementById('closeError').addEventListener('click', () => {
-    document.getElementById('errorModal').classList.add('hidden');
-    playSound('click');
+    document.getElementById('closeError').addEventListener('click', () => { document.getElementById('errorModal').classList.add('hidden'); haptic('light'); });
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (state.deleteIndex !== null) {
+            state.history.splice(state.deleteIndex, 1);
+            localStorage.setItem('history', JSON.stringify(state.history));
+            updateViews();
+            state.deleteIndex = null;
+        }
+        document.getElementById('deleteConfirmModal').classList.add('hidden');
+        haptic('success');
+    });
+    document.getElementById('cancelDelete').addEventListener('click', () => { document.getElementById('deleteConfirmModal').classList.add('hidden'); state.deleteIndex = null; haptic('light'); });
+    document.getElementById('editGoalBtn').addEventListener('click', () => { document.getElementById('goalInput').value = state.goal; document.getElementById('goalModal').classList.remove('hidden'); haptic('light'); });
+    document.getElementById('saveGoal').addEventListener('click', function() {
+        const newGoal = parseFloat(document.getElementById('goalInput').value);
+        if (newGoal >= 8 && newGoal <= 18) {
+            state.goal = newGoal;
+            localStorage.setItem('goal', newGoal);
+            updateViews();
+            document.getElementById('goalModal').classList.add('hidden');
+            haptic('success');
+        }
+    });
+    document.getElementById('cancelGoal').addEventListener('click', () => { document.getElementById('goalModal').classList.add('hidden'); haptic('light'); });
+document.getElementById('articles').addEventListener('click', async function(e) {
+    const card = e.target.closest('.articleCard');
+    if (!card) return;
+    const article = translations[state.lang].articles.find(a => a.id === card.dataset.id);
+    if (!article) return;
+    if (!state.readArticles.includes(article.id)) {
+        state.readArticles.push(article.id);
+        localStorage.setItem('readArticles', JSON.stringify(state.readArticles));
+    }
+    
+    // Load article content from external file
+    document.getElementById('articleTitle').textContent = article.title;
+    document.getElementById('articleImg').src = article.img;
+    document.getElementById('articleContent').innerHTML = '<p class="text-gray-400 animate-pulse">Loading...</p>';
+    showView('articleView');
+    
+    const content = await loadArticleContent(article.id, state.lang);
+    document.getElementById('articleContent').innerHTML = content;
+    haptic('light');
 });
-
-document.getElementById('retakeBtn').addEventListener('click', () => {
-    showScreen('mainScreen');
-    document.getElementById('cameraModal').classList.remove('hidden');
-});
-
-document.getElementById('nextBtn').addEventListener('click', () => {
-    showScreen('mainScreen');
-});
-
-// Initialize
-const savedLang = localStorage.getItem('lang') || 'en';
-const savedAudio = localStorage.getItem('audioEnabled');
-if (savedAudio !== null) state.audioEnabled = savedAudio === 'true';
-setLang(savedLang);
-</script>
+    document.getElementById('backBtn').addEventListener('click', () => { showView('dashboardView'); haptic('light'); });
+    
+    setLang(localStorage.getItem('lang') || 'en');
+    updateViews();
+    </script>
 </body>
 </html>
